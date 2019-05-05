@@ -1,6 +1,7 @@
 import argparse
 import crypto
 import api
+from password_generator import PasswordGenerator
 
 def generate():
     seed = crypto.generate_seed()
@@ -11,9 +12,11 @@ def generate():
 def recover(mnemonic):
     seed = crypto.recover(mnemonic)
     password_key, signing_keypair, decryption_key = crypto.derive_keys_from_seed(seed)
-    accounts = api.get_backup_data(signing_keypair)
-    for id, account in accounts.items():
-        print(crypto.decrypt(account, decryption_key))
+    # accounts = api.get_backup_data(signing_keypair)
+    # for id, account in accounts.items():
+    #     print(crypto.decrypt(account, decryption_key))
+    generator = PasswordGenerator("test", "test", seed, None)
+    generator.generate_key(0)
 
 def import_csv(file, mnemonic):
     print("lets import")

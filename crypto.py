@@ -4,9 +4,11 @@ import nacl.signing
 import nacl.secret
 from functools import reduce
 
+
 SEED_SIZE = 16
 SEED_CONTEXT = "keynseed"
 BACKUP_CONTEXT = "keynback"
+PASSWORD_CONTEXT = "keynpass"
 PASSWORD_KEY_INDEX = 0
 BACKUP_KEY_INDEX = 1
 
@@ -66,6 +68,16 @@ def generic_hash(data):
 def kdf_derive_from_key(data, index, context):
     return blake2b(b'', key=data, salt=index.to_bytes(16, byteorder='little'), person=context.encode("utf-8"),
                    encoder=nacl.encoding.RawEncoder)
+
+
+def password_key(seed, site_id, index, username):
+    site_hash = sha256(site_id.encode("utf-8"), encoder=nacl.encoding.RawEncoder)
+    username_hash = sha256(username.encode("utf-8"), encoder=nacl.encoding.HexEncoder)
+    site_key = blake2b(b'', key=seed, salt=site_hash[:16],
+                       person=PASSWORD_CONTEXT.encode("utf-8"), encoder=nacl.encoding.RawEncoder)
+    return kdf_derive_from_key(site_key, index, username_hash.decode()[:8])
+
+
 
 def addUnneccesaryPadding(string):
     padding = 4 - (len(string) % 4)

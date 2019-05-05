@@ -6,7 +6,7 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-pynacl = "*"
+pynacl = {editable = true,path = "./../../pynacl"}
 requests = "*"
 
 [requires]
