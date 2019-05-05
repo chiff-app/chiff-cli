@@ -1,5 +1,6 @@
 import argparse
 import crypto
+import api
 
 def generate():
     seed = crypto.generate_seed()
@@ -9,7 +10,10 @@ def generate():
 
 def recover(mnemonic):
     seed = crypto.recover(mnemonic)
-
+    password_key, signing_keypair, decryption_key = crypto.derive_keys_from_seed(seed)
+    accounts = api.get_backup_data(signing_keypair)
+    for id, account in accounts.items():
+        print(crypto.decrypt(account, decryption_key))
 
 def import_csv(file, mnemonic):
     print("lets import")
