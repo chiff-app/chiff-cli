@@ -16,7 +16,7 @@ def recover(mnemonic):
     # for id, account in accounts.items():
     #     print(crypto.decrypt(account, decryption_key))
     generator = PasswordGenerator("test", "test", seed, None)
-    generator.generate_key(0)
+    generator.generate_password_candidate(0, 22, None)
 
 def import_csv(file, mnemonic):
     print("lets import")

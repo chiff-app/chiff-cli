@@ -2,6 +2,7 @@ import nacl.utils, nacl.encoding
 from nacl.hash import sha256, blake2b
 import nacl.signing
 import nacl.secret
+import nacl.utils
 from functools import reduce
 
 
@@ -77,6 +78,9 @@ def password_key(seed, site_id, index, username):
                        person=PASSWORD_CONTEXT.encode("utf-8"), encoder=nacl.encoding.RawEncoder)
     return kdf_derive_from_key(site_key, index, username_hash.decode()[:8])
 
+
+def deterministic_random_bytes(seed, size):
+    return nacl.utils.randombytes_deterministic(size, seed)
 
 
 def addUnneccesaryPadding(string):

@@ -2,6 +2,7 @@ import crypto
 import math
 from password_validator import MAXIMAL_CHARACTER_SET
 
+
 class PasswordGenerator:
 
     def __init__(self, username, site_id, seed, ppd):
@@ -17,14 +18,20 @@ class PasswordGenerator:
         return "todo"
 
     def length(self):
-        return 22
+        return 5
 
     def generate_password_candidate(self, index, length, offset):
         chars = MAXIMAL_CHARACTER_SET if offset is not None else self.characters()
         key = self.generate_key(index)
-        bit_length = length * math.ceil(math.log2(chars.count())) + (128 + length - (128 % length))
-        byte_length = self.round_up(bit_length, base=length*8) / 8
-
+        bit_length = length * math.ceil(math.log2(len(chars))) + (128 + length - (128 % length))
+        byte_length = int(self.round_up(bit_length, base=length*8) / 8)
+        key_data = crypto.deterministic_random_bytes(key, byte_length)
+        modulus = len(chars) if offset is not None else len(chars) + 1
+        offset = offset if offset is not None else []
+        for i in range(0, length):
+            print(i)
+            print(i + (byte_length / length))
+            print(key_data[i:int(i + (byte_length / length))])
 
 
     # private func generatePasswordCandidate(index passwordIndex: Int, length: Int, offset: [Int]?) throws -> String {

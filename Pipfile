@@ -6,7 +6,7 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-pynacl = {editable = true,path = "./../../pynacl"}
+pynacl = {git = "https://github.com/bas-d/pynacl.git"}
 requests = "*"
 
 [requires]
