@@ -34,58 +34,29 @@ class PasswordGenerator:
         return length
 
     def generate_password_candidate(self, index, length, offset):
-        chars = password_validator.MAXIMAL_CHARACTER_SET if offset is not None else self.characters() #self.characters is chosen
-        key = self.generate_key(index) #selects what pw to generate to from thelist (if there is any)
-        #print(base64.b64encode(key))
-        #print(len(chars)) #length of the usable charsarray
-        #print(length) #length of the pw
-        bit_length = length * math.ceil(math.log2(len(chars))) + (128 + length - (128 % length)) #ammount of bits in the pw
-        byte_length = int(self.round_up(bit_length, base=length*8) / 8) #ammount of bytes in a pw
+        chars = password_validator.MAXIMAL_CHARACTER_SET if offset is not None else self.characters()
+        key = crypto.password_key(self.seed, self.site_id, index, self.username)
+        bit_length = length * math.ceil(math.log2(len(chars))) + (128 + length - (128 % length))  # number of bits in the pw
+        byte_length = int(self.round_up(n=bit_length, m=(length*8)) / 8)
         key_data = crypto.deterministic_random_bytes(key, byte_length)
-        #print(key_data)
-        #print(base64.b64encode(key_data))
-        modulus = len(chars) if offset is not None else len(chars) + 1
+        modulus = len(chars) + 1 if offset is not None else len(chars)
         offset = offset if offset is not None else []
-        bytesPerChar = int(byte_length / length)
+        bytes_per_char = int(byte_length / length)
         password = ""
-        #print(offset)
-        #for each char in pw
         for i in range(0, length):
-            index = (int.from_bytes(key_data[i:i + bytesPerChar], byteorder="little") + offset[i]) % modulus
+            index = (int.from_bytes(key_data[i:i + bytes_per_char], byteorder="big") + offset[i]) % modulus
             if index < len(chars):
                 password += chars[index]
 
         return password
 
-
-    # private func generatePasswordCandidate(index passwordIndex: Int, length: Int, offset: [Int]?) throws -> String {
-    #     let chars = offset != nil ? PasswordValidator.MAXIMAL_CHARACTER_SET.sorted() : characters
-    #     let key = try generateKey(index: passwordIndex)
-    #     let bitLength = length * Int(ceil(log2(Double(chars.count)))) + (128 + length - (128 % length))
-    #     let byteLength = roundUp(n: bitLength, m: (length * 8)) / 8 // Round to nearest multiple of L * 8, so we can use whole bytes
-    #     let keyData = try Crypto.shared.deterministicRandomBytes(seed: key, length: byteLength)
-    #     let modulus = offset == nil ? chars.count : chars.count + 1
-    #     let offset = offset ?? Array<Int>(repeatElement(0, count: length))
-    #
-    #
-    #
-    #
-    #     return (0..<length).reduce("") { (pw, index) -> String in
-    #         let charIndex = (keyData[index..<index + (byteLength / length)].reduce(0) { ($0 << 8 + Int($1)).mod(modulus) } + offset[index]).mod(modulus)
-    #         return charIndex == chars.count ? pw : pw + String(chars[charIndex])
-    #     }
-    # }
-    #
-    #
-    #
-
-
-    def round_up(self, x, base):
-        return base * round(x / base)
+    @staticmethod
+    def round_up(n, m):
+        if n >= 0:
+            return (int((n + m - 1) / m)) * m
+        else:
+            return int(n / m) * m
 
     @staticmethod
     def characters():
         return "blablalasdlksajdlasjdenhierkomtnogmeerbij"
-
-    def generate_key(self, index):
-        return crypto.password_key(self.seed, self.site_id, index, self.username)

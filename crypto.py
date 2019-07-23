@@ -72,11 +72,12 @@ def kdf_derive_from_key(data, index, context):
 
 
 def password_key(seed, site_id, index, username):
-    site_hash = sha256(site_id.encode("utf-8"), encoder=nacl.encoding.RawEncoder)
-    username_hash = sha256(username.encode("utf-8"), encoder=nacl.encoding.HexEncoder)
-    site_key = blake2b(b'', key=seed, salt=site_hash[:16],
+    site_hash = sha256(site_id.encode("utf-8"), encoder=nacl.encoding.HexEncoder)[:8]
+    username_hash = sha256(username.encode("utf-8"), encoder=nacl.encoding.HexEncoder)[:8]
+    site_key = blake2b(b'', key=seed, salt=site_hash,
                        person=PASSWORD_CONTEXT.encode("utf-8"), encoder=nacl.encoding.RawEncoder)
-    return kdf_derive_from_key(site_key, index, username_hash.decode()[:8])
+    return blake2b(b'', key=site_key, salt=index.to_bytes(16, byteorder='little'), person=username_hash,
+                   encoder=nacl.encoding.RawEncoder)
 
 
 def deterministic_random_bytes(seed, size):

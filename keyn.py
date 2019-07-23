@@ -23,6 +23,7 @@ def print_accounts(mnemonic):
 
     print("-------------------------")
 
+
 def recover(mnemonic):
     seed = crypto.recover(mnemonic)
     password_key, signing_keypair, decryption_key = crypto.derive_keys_from_seed(seed)
@@ -36,7 +37,7 @@ def recover(mnemonic):
         username = decrypted_account["username"]
         site = decrypted_account["sites"][0]
 
-        generator = PasswordGenerator(username, site["id"], seed, None)
+        generator = PasswordGenerator(username, site["id"], password_key, None)
         password, index = generator.generate(decrypted_account["passwordIndex"], decrypted_account["passwordOffset"])
 
         accounts_export.append({"username": username, "password": password, "url": site["url"], "site_name": site["name"]})
@@ -56,7 +57,6 @@ def export_csv(mnemonic):
         account_data_writer.writerow(['URL', 'Username', 'Password', 'Site'])
         for account in accounts:
             account_data_writer.writerow([account["url"], account["username"], account["password"], account["site_name"]])
-
 
 
 if __name__ == '__main__':
