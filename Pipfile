@@ -8,6 +8,7 @@ verify_ssl = true
 [packages]
 pynacl = {git = "https://github.com/bas-d/pynacl.git"}
 requests = "*"
+pykeepass = "*"
 
 [requires]
 python_version = "3.6"

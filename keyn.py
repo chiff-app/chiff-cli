@@ -3,7 +3,10 @@ import crypto
 import api
 import json
 import csv
+import sys
+import getpass
 from password_generator import PasswordGenerator
+from pykeepass import PyKeePass
 
 
 def generate():
@@ -45,63 +48,86 @@ def recover(mnemonic):
     return accounts_export
 
 
-def import_csv(file, mnemonic):
-    print("lets import")
+def import_csv(mnemonic, path):
+    if mnemonic is None:
+        generate()
+    else:
+        print("lets import")
 
 
-def export_csv(mnemonic):
+def export_csv(mnemonic, path):
     accounts = recover(mnemonic)
 
-    with open('account_data.csv', mode='w') as account_data:
-        account_data_writer = csv.writer(account_data, delimiter=',')
-        account_data_writer.writerow(['URL', 'Username', 'Password', 'Site'])
+    with open(path, mode='w') if path is not None else sys.stdout as file:
+        csv_writer = csv.writer(file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+        csv_writer.writerow(['URL', 'Username', 'Password', 'Site'])
         for account in accounts:
-            account_data_writer.writerow([account["url"], account["username"], account["password"], account["site_name"]])
+            csv_writer.writerow([account["url"], account["username"], account["password"], account["site_name"]])
+
+
+def import_json(mnemonic, path):
+    if mnemonic is None:
+        generate()
+    else:
+        print("lets import")
+
+
+def export_json(mnemonic, path):
+    accounts = recover(mnemonic)
+
+    with open(path, mode='w') if path is not None else sys.stdout as file:
+        json.dump(accounts, file)
+
+
+def import_kdbx(mnemonic, path):
+    if mnemonic is None:
+        generate()
+    else:
+        print("lets import")
+
+
+def export_kdbx(mnemonic, path):
+    accounts = recover(mnemonic)
+
+    password = getpass.getpass(prompt='Please provide your .kdbx database password: ')
+
+    with PyKeePass(path, password=password) as kp:
+        for account in accounts:
+            kp.add_entry(kp.root_group, account["site_name"], account["username"], account["password"], account["url"])
+            kp.save(path)
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate, recover and modify Keyn backup data.')
     parser.add_argument("action",
-                        help="The action you want to execute: generate / recover / import / export")
+                        help="The action you want to execute: generate / recover / import")
     parser.add_argument("-m", "--mnemonic", nargs=12,
                         help="The 12-word mnemonic, e.g. -m "
                              "word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12")
-    parser.add_argument("-f", "--format", nargs=1,
-                        help="The output format"),
-    parser.add_argument("-o", "--output", nargs=1,
-                        help="The path to where the csv file should be written. Prints to stdout if not provided")
-    parser.add_argument("-i", "--input", nargs=1,
-                        help="The path to where the csv file should be read from. "
-                             "Expects input on stdin if not provided")
+    parser.add_argument("-f", "--format",
+                        help="The output format. If data is written to a .kdbx database, the path to an existing .kdbx database file needs to be provided with -p"),
+    parser.add_argument("-p", "--path",
+                        help="The path to where the csv file should be written / read from. Prints or reads from stdout if not provided")
 
     args = parser.parse_args()
-    args.format = "csv"
 
     if args.action == "generate":
         generate()
     elif args.action == "recover":
         if args.mnemonic:
             if args.format == "csv":
-                export_csv(args.mnemonic)
+                export_csv(args.mnemonic, args.path)
             elif args.format == "json":
-                print("export_json(args.mnemonic)")
+                export_json(args.mnemonic, args.path)
             elif args.format == "kdbx":
-                print("export_kdbx(args.mnemonic)")
+                export_kdbx(args.mnemonic, args.path)
             else:
                 print_accounts(args.mnemonic)
         else:
             print("The mnemonic should be provided with -m or --mnemonic. "
                   "E.g. keyn recover -m word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12")
     elif args.action == "import":
-        if args.input:
-            import_csv(args.input[0], args.mnemonic)
+        if args.format == "csv":
+            import_csv(args.mnemonic, args.path)
         else:
-            print("TODO: reead stdin")
-    elif args.action == "export":
-        if not args.mnemonic:
-            print("The mnemonic should be provided with -m or --mnemonic. "
-                  "E.g. keyn recover -m word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12")
-        elif args.output:
-            export_csv(args.output[0], mnemonic=args.mnemonic)
-        else:
-            print("TODO: output stdout")
+            print("i dunno")
