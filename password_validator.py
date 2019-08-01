@@ -8,6 +8,11 @@ MAXIMAL_CHARACTER_SET = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTU
                         "`abcdefghijklmnopqrstuvwxyz{|}~"
 
 class PasswordValidator:
-
     def __init__(self, ppd):
-        self.ppd = ppf
+        self.ppd = ppd
+
+    def validate_characters(self, password, characters):
+        return True  # change later
+
+    def validate_max_length(self, password):
+        return True  # change later

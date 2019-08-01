@@ -3,6 +3,8 @@ from nacl.hash import sha256, blake2b
 import nacl.signing
 import nacl.secret
 import nacl.utils
+import tldextract
+from urllib.parse import urlparse
 from functools import reduce
 
 
@@ -87,3 +89,22 @@ def deterministic_random_bytes(seed, size):
 def addUnneccesaryPadding(string):
     padding = 4 - (len(string) % 4)
     return string + ("=" * padding)
+
+def get_site_ids(url):
+    parsed_domain = urlparse(url)  # contains the protocol
+    extracted_domain = tldextract.extract(url)
+    top_domain = ""
+
+    if parsed_domain is None and url is None:
+        raise ValueError("Invalid / empty URL")
+
+    if extracted_domain.subdomain == "":
+        full_domain = sha256((parsed_domain.scheme + "://" + extracted_domain.domain + "." + extracted_domain.suffix).encode("utf-8"),
+        encoder=nacl.encoding.HexEncoder)
+    else:
+        full_domain = sha256((parsed_domain.scheme + "://" + extracted_domain.subdomain + "." + extracted_domain.domain
+        + "." + extracted_domain.suffix).encode("utf-8"), encoder=nacl.encoding.HexEncoder)
+        top_domain = sha256((parsed_domain.scheme + "://" + extracted_domain.domain + "." + extracted_domain.suffix).encode("utf-8"),
+        encoder=nacl.encoding.HexEncoder)
+
+    return full_domain, top_domain

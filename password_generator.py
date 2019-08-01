@@ -23,8 +23,32 @@ class PasswordGenerator:
 
         return password, index
 
-    def calculate_offset(self):
-        return "todo"
+    def calculate_offset(self, index, password):
+        chars = password_validator.MAXIMAL_CHARACTER_SET
+        length = self.length(True)
+        validator = password_validator.PasswordValidator(self.ppd)
+
+        if not validator.validate_max_length(password):
+            raise ValueError("The password is too long.")
+
+        if not validator.validate_characters(password, chars):
+            raise ValueError("The password contains a character that is not allowed.")
+
+        key = crypto.password_key(self.seed, self.site_id, index, self.username)
+        bit_length = length * math.ceil(math.log2(len(chars))) + (128 + length - (128 % length))
+        byte_length = int(self.round_up(n=bit_length, m=(length * 8)) / 8)
+        bytes_per_char = int(byte_length / length)
+        key_data = crypto.deterministic_random_bytes(key, byte_length)
+        characters = list(password)
+        modulus = len(chars) + 1
+        offset = []
+
+        for i in range(0, length):
+            char_index = chars.index(characters[i]) if i < len(characters) else len(chars)
+            index = int.from_bytes(key_data[i: i + bytes_per_char], byteorder="big")
+            offset.append((char_index - index) % modulus)
+
+        return offset
 
     def length(self, is_custom_password):
         length = password_validator.MAX_PASSWORD_LENGTH_BOUND if is_custom_password else password_validator.FALLBACK_PASSWORD_LENGTH
@@ -43,6 +67,7 @@ class PasswordGenerator:
         offset = offset if offset is not None else []
         bytes_per_char = int(byte_length / length)
         password = ""
+
         for i in range(0, length):
             index = (int.from_bytes(key_data[i:i + bytes_per_char], byteorder="big") + offset[i]) % modulus
             if index < len(chars):

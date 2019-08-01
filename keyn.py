@@ -42,18 +42,29 @@ def recover(mnemonic):
 
         generator = PasswordGenerator(username, site["id"], password_key, None)
         password, index = generator.generate(decrypted_account["passwordIndex"], decrypted_account["passwordOffset"])
-
         accounts_export.append({"username": username, "password": password, "url": site["url"], "site_name": site["name"]})
 
     return accounts_export
 
 
 def import_csv(mnemonic, path):
-    if mnemonic is None:
-        generate()
-    else:
-        print("lets import")
+    seed = crypto.recover(mnemonic) if mnemonic is not None else crypto.generate_seed()
+    password_key, signing_keypair, decryption_key = crypto.derive_keys_from_seed(seed)
+    with open(path) as file:
+        csv_reader = csv.reader(file, delimiter=',')
+        line_count = 0
+        for row in csv_reader:
+            if line_count == 0:
+                print(f'Headers: {", ".join(row)}')
+                line_count += 1
+            else:
+                print('Data: ' + row[0] + ", " + row[1] + ", " + row[2] + ", " + row[3])
+                line_count += 1
 
+                site_id, secondary_site_id = crypto.get_site_ids(row[0])
+
+                generator = PasswordGenerator(row[1], site_id.decode("utf-8"), password_key, None)
+                print(generator.calculate_offset(0, row[2]))
 
 def export_csv(mnemonic, path):
     accounts = recover(mnemonic)
