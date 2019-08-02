@@ -11,7 +11,10 @@ from pykeepass import PyKeePass
 
 def generate():
     seed = crypto.generate_seed()
+    # _, signing_keypair, _ = crypto.derive_keys_from_seed(seed)
+    # api.create_backup_data(signing_keypair)
     mnemonic = crypto.mnemonic(seed)
+    print("The seed has been generated. Please write it down and store it in a safe place:")
     print(" ".join(mnemonic))
 
 
@@ -19,6 +22,7 @@ def print_accounts(mnemonic):
     accounts = recover(mnemonic)
     for account in accounts:
         print("-------------------------")
+        print("Id:\t\t%s" % account["id"])
         print("Username:\t%s" % account["username"])
         print("Password:\t%s" % account["password"])
         print("Site:\t\t%s" % account["site_name"])
@@ -41,8 +45,10 @@ def recover(mnemonic):
         site = decrypted_account["sites"][0]
 
         generator = PasswordGenerator(username, site["id"], password_key, None)
-        password, index = generator.generate(decrypted_account["passwordIndex"], decrypted_account["passwordOffset"])
-        accounts_export.append({"username": username, "password": password, "url": site["url"], "site_name": site["name"]})
+        password, index = generator.generate(decrypted_account["passwordIndex"],
+                                             decrypted_account["passwordOffset"])
+        accounts_export.append({"id": id, "username": username, "password": password,
+                                "url": site["url"], "site_name": site["name"]})
 
     return accounts_export
 
@@ -54,7 +60,7 @@ def import_csv(mnemonic, path):
         csv_reader = csv.reader(file, delimiter=',')
         next(csv_reader, None)
         for row in csv_reader:
-            upload_account_data(row[0], row[1], row[2], row[3], password_key)
+            upload_account_data(row[0], row[1], row[2], row[3], password_key, encryption_key, signing_keypair)
 
 
 def export_csv(mnemonic, path):
@@ -75,14 +81,15 @@ def import_json(mnemonic, path):
         accounts = json.load(file)
 
     for account in accounts:
-        upload_account_data(account["url"], account["username"], account["password"], account["site_name"], password_key, encryption_key, signing_keypair)
+        upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
+                            password_key, encryption_key, signing_keypair)
 
 
 def export_json(mnemonic, path):
     accounts = recover(mnemonic)
 
     with open(path, mode='w') if path is not None else sys.stdout as file:
-        json.dump(accounts, file)
+        json.dump(accounts, file, indent=4)
 
 
 def import_kdbx(mnemonic, path):
@@ -93,7 +100,8 @@ def import_kdbx(mnemonic, path):
 
     with PyKeePass(path, password=password) as kp:
         for account in kp.entries:
-            upload_account_data(account.url, account.username, account.password, account.title, password_key, encryption_key, signing_keypair)
+            upload_account_data(account.url, account.username, account.password,
+                                account.title, password_key, encryption_key, signing_keypair)
 
 
 def export_kdbx(mnemonic, path):
@@ -105,6 +113,7 @@ def export_kdbx(mnemonic, path):
         for account in accounts:
             kp.add_entry(kp.root_group, account["site_name"], account["username"], account["password"], account["url"])
             kp.save(path)
+
 
 def upload_account_data(url, username, password, site_name, password_key, encryption_key, signing_keypair):
     site_id, secondary_site_id = crypto.get_site_ids(url)
@@ -128,6 +137,7 @@ def upload_account_data(url, username, password, site_name, password_key, encryp
     ciphertext = crypto.encrypt(json.dumps(account).encode("utf-8"), encryption_key)
     api.set_backup_data(account_id, ciphertext, signing_keypair)
 
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate, recover and modify Keyn backup data.')
     parser.add_argument("action",
@@ -136,9 +146,11 @@ if __name__ == '__main__':
                         help="The 12-word mnemonic, e.g. -m "
                              "word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12")
     parser.add_argument("-f", "--format",
-                        help="The output format. If data is written to a .kdbx database, the path to an existing .kdbx database file needs to be provided with -p"),
+                        help="The output format. If data is written to a .kdbx database, the path to an existing "
+                             ".kdbx database file needs to be provided with -p"),
     parser.add_argument("-p", "--path",
-                        help="The path to where the csv file should be written / read from. Prints or reads from stdout if not provided")
+                        help="The path to where the csv file should be written / read from. Prints or reads from "
+                             "stdout if not provided")
 
     args = parser.parse_args()
 

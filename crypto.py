@@ -48,7 +48,9 @@ def derive_keys_from_seed(seed):
     seed_hash = generic_hash(seed)
     password_key = kdf_derive_from_key(seed_hash, PASSWORD_KEY_INDEX, SEED_CONTEXT)
     backup_key = kdf_derive_from_key(seed_hash, BACKUP_KEY_INDEX, SEED_CONTEXT)
-    return password_key, nacl.signing.SigningKey(backup_key), nacl.secret.SecretBox(kdf_derive_from_key(backup_key, 0, BACKUP_CONTEXT))
+    return password_key,\
+        nacl.signing.SigningKey(backup_key), \
+        nacl.secret.SecretBox(kdf_derive_from_key(backup_key, 0, BACKUP_CONTEXT))
 
 
 def sign(message, signing_key: nacl.signing.SigningKey):
@@ -61,7 +63,7 @@ def encrypt(message, key: nacl.secret.SecretBox):
 
 
 def decrypt(message, key: nacl.secret.SecretBox):
-    return key.decrypt(add_unneccesary_padding(message), encoder=nacl.encoding.URLSafeBase64Encoder)
+    return key.decrypt(add_padding(message), encoder=nacl.encoding.URLSafeBase64Encoder)
 
 
 def create_signing_keypair(seed):
@@ -94,7 +96,7 @@ def deterministic_random_bytes(seed, size):
     return nacl.utils.randombytes_deterministic(size, seed)
 
 
-def add_unneccesary_padding(string):
+def add_padding(string):
     padding = 4 - (len(string) % 4)
     return string + ("=" * padding)
 
@@ -108,12 +110,19 @@ def get_site_ids(url):
         raise ValueError("Invalid / empty URL")
 
     if extracted_domain.subdomain == "":
-        full_domain = sha256((parsed_domain.scheme + "://" + extracted_domain.domain + "." + extracted_domain.suffix).encode("utf-8"),
-        encoder=nacl.encoding.HexEncoder)
+        full_domain = sha256((parsed_domain.scheme + "://" +
+                              extracted_domain.domain + "." +
+                              extracted_domain.suffix).encode("utf-8"),
+                             encoder=nacl.encoding.HexEncoder)
     else:
-        full_domain = sha256((parsed_domain.scheme + "://" + extracted_domain.subdomain + "." + extracted_domain.domain
-        + "." + extracted_domain.suffix).encode("utf-8"), encoder=nacl.encoding.HexEncoder)
-        top_domain = sha256((parsed_domain.scheme + "://" + extracted_domain.domain + "." + extracted_domain.suffix).encode("utf-8"),
-        encoder=nacl.encoding.HexEncoder)
+        full_domain = sha256((parsed_domain.scheme + "://" +
+                              extracted_domain.subdomain + "." +
+                              extracted_domain.domain + "." +
+                              extracted_domain.suffix).encode("utf-8"),
+                             encoder=nacl.encoding.HexEncoder)
+        top_domain = sha256((parsed_domain.scheme + "://" +
+                             extracted_domain.domain + "." +
+                             extracted_domain.suffix).encode("utf-8"),
+                            encoder=nacl.encoding.HexEncoder)
 
     return full_domain, top_domain
