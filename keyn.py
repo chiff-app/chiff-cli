@@ -49,22 +49,13 @@ def recover(mnemonic):
 
 def import_csv(mnemonic, path):
     seed = crypto.recover(mnemonic) if mnemonic is not None else crypto.generate_seed()
-    password_key, signing_keypair, decryption_key = crypto.derive_keys_from_seed(seed)
+    password_key, signing_keypair, encryption_key = crypto.derive_keys_from_seed(seed)
     with open(path) as file:
         csv_reader = csv.reader(file, delimiter=',')
-        line_count = 0
+        next(csv_reader, None)
         for row in csv_reader:
-            if line_count == 0:
-                print(f'Headers: {", ".join(row)}')
-                line_count += 1
-            else:
-                print('Data: ' + row[0] + ", " + row[1] + ", " + row[2] + ", " + row[3])
-                line_count += 1
+            upload_account_data(row[0], row[1], row[2], row[3], password_key)
 
-                site_id, secondary_site_id = crypto.get_site_ids(row[0])
-
-                generator = PasswordGenerator(row[1], site_id.decode("utf-8"), password_key, None)
-                print(generator.calculate_offset(0, row[2]))
 
 def export_csv(mnemonic, path):
     accounts = recover(mnemonic)
@@ -77,10 +68,14 @@ def export_csv(mnemonic, path):
 
 
 def import_json(mnemonic, path):
-    if mnemonic is None:
-        generate()
-    else:
-        print("lets import")
+    seed = crypto.recover(mnemonic) if mnemonic is not None else crypto.generate_seed()
+    password_key, signing_keypair, encryption_key = crypto.derive_keys_from_seed(seed)
+
+    with open(path, mode='r') as file:
+        accounts = json.load(file)
+
+    for account in accounts:
+        upload_account_data(account["url"], account["username"], account["password"], account["site_name"], password_key, encryption_key, signing_keypair)
 
 
 def export_json(mnemonic, path):
@@ -91,10 +86,14 @@ def export_json(mnemonic, path):
 
 
 def import_kdbx(mnemonic, path):
-    if mnemonic is None:
-        generate()
-    else:
-        print("lets import")
+    seed = crypto.recover(mnemonic) if mnemonic is not None else crypto.generate_seed()
+    password_key, signing_keypair, encryption_key = crypto.derive_keys_from_seed(seed)
+
+    password = getpass.getpass(prompt='Please provide your .kdbx database password: ')
+
+    with PyKeePass(path, password=password) as kp:
+        for account in kp.entries:
+            upload_account_data(account.url, account.username, account.password, account.title, password_key, encryption_key, signing_keypair)
 
 
 def export_kdbx(mnemonic, path):
@@ -107,6 +106,27 @@ def export_kdbx(mnemonic, path):
             kp.add_entry(kp.root_group, account["site_name"], account["username"], account["password"], account["url"])
             kp.save(path)
 
+def upload_account_data(url, username, password, site_name, password_key, encryption_key, signing_keypair):
+    site_id, secondary_site_id = crypto.get_site_ids(url)
+    site_id = site_id.decode("utf-8")
+    account_id = crypto.generic_hash_string(("%s_%s" % (site_id, username)))
+    generator = PasswordGenerator(username, site_id, password_key, None)
+    offset = generator.calculate_offset(0, password)
+    account = {
+        'id': account_id,
+        'sites': [{
+            'id': site_id,
+            'url': url,
+            'name': site_name,
+            'ppd': None}],
+        'username': username,
+        'passwordIndex': 0,
+        'lastPasswordUpdateTryIndex': 0,
+        'passwordOffset': offset,
+        'enabled': False,
+    }
+    ciphertext = crypto.encrypt(json.dumps(account).encode("utf-8"), encryption_key)
+    api.set_backup_data(account_id, ciphertext, signing_keypair)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Generate, recover and modify Keyn backup data.')
@@ -138,7 +158,15 @@ if __name__ == '__main__':
             print("The mnemonic should be provided with -m or --mnemonic. "
                   "E.g. keyn recover -m word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12")
     elif args.action == "import":
-        if args.format == "csv":
-            import_csv(args.mnemonic, args.path)
+        if args.mnemonic:
+            if args.format == "csv":
+                import_csv(args.mnemonic, args.path)
+            elif args.format == "json":
+                import_json(args.mnemonic, args.path)
+            elif args.format == "kdbx":
+                import_kdbx(args.mnemonic, args.path)
+            else:
+                print("The format of the imported file should be provided with -f or --format")
         else:
-            print("i dunno")
+            print("The mnemonic should be provided with -m or --mnemonic. "
+                  "E.g. keyn recover -m word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12")

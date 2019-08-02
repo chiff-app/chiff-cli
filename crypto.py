@@ -56,8 +56,12 @@ def sign(message, signing_key: nacl.signing.SigningKey):
            signing_key.verify_key.encode(nacl.encoding.URLSafeBase64Encoder)
 
 
+def encrypt(message, key: nacl.secret.SecretBox):
+    return key.encrypt(message, encoder=nacl.encoding.URLSafeBase64Encoder).decode("utf-8").replace('=', '')
+
+
 def decrypt(message, key: nacl.secret.SecretBox):
-    return key.decrypt(addUnneccesaryPadding(message), encoder=nacl.encoding.URLSafeBase64Encoder)
+    return key.decrypt(add_unneccesary_padding(message), encoder=nacl.encoding.URLSafeBase64Encoder)
 
 
 def create_signing_keypair(seed):
@@ -66,6 +70,10 @@ def create_signing_keypair(seed):
 
 def generic_hash(data):
     return blake2b(data, encoder=nacl.encoding.RawEncoder)
+
+
+def generic_hash_string(string):
+    return blake2b(string.encode("utf-8"), encoder=nacl.encoding.HexEncoder).decode("utf-8")
 
 
 def kdf_derive_from_key(data, index, context):
@@ -86,9 +94,10 @@ def deterministic_random_bytes(seed, size):
     return nacl.utils.randombytes_deterministic(size, seed)
 
 
-def addUnneccesaryPadding(string):
+def add_unneccesary_padding(string):
     padding = 4 - (len(string) % 4)
     return string + ("=" * padding)
+
 
 def get_site_ids(url):
     parsed_domain = urlparse(url)  # contains the protocol
