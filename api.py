@@ -34,3 +34,11 @@ def sign_request(message, keypair):
     }
     url = '%s/%s' % (API_URL, pub_key.decode().rstrip("="))
     return url, params, headers
+
+
+def delete_account(id, keypair):
+    url, params, headers = sign_request({
+        "httpMethod": "DELETE",
+        "id": id
+    }, keypair)
+    return requests.delete(url, params=params, headers=headers).json()

@@ -9,6 +9,71 @@ from password_generator import PasswordGenerator
 from pykeepass import PyKeePass
 
 
+def main():
+    # top lvl parser
+    parser = argparse.ArgumentParser(prog='keyn', description='Generate, recover and modify Keyn backup data.')
+    subparsers = parser.add_subparsers(prog='keyn',help='sub-command help')
+
+    # ???
+    parser.add_argument("action", choices=['generate', 'recover', 'import', 'delete'],
+                        help="The action you want to execute: generate / recover / import / delete")
+    # ???
+
+    # to convert to subcommands
+    # parser.add_argument("-m", "--mnemonic", nargs=12,
+    #                     help="The 12-word mnemonic, e.g. -m "
+    #                          "word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12")
+    # parser.add_argument("-f", "--format", choices=['csv', 'json', 'kdbx'],
+    #                     help="The output format. If data is written to a .kdbx database, the path to an existing .kdbx database file needs to be provided with -p"),
+    # parser.add_argument("-p", "--path",
+    #                     help="The path to where the csv file should be written / read from. Prints or reads from stdout if not provided")
+    # parser.add_argument("-i", "--id",
+    #                     help="The account id of the account that should be deleted")
+    # parser.add_argument("--delete-seed",
+    #                     help="Used in combination with the delete action to delete all data of this seed")
+
+    #wokring
+    parser_action = subparsers.add_parser('generate')
+    parser_action.add_argument()
+
+
+    args = parser.parse_args()
+
+    # if args.action == "generate":
+    #     generate()
+    #     return
+    # elif args.mnemonic is None:
+    #     print("The mnemonic should be provided with -m or --mnemonic. "
+    #           "E.g. keyn recover -m word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12")
+    #     return
+    #
+    # if args.action == "recover":
+    #     if args.format == "csv":
+    #         export_csv(args.mnemonic, args.path)
+    #     elif args.format == "json":
+    #         export_json(args.mnemonic, args.path)
+    #     elif args.format == "kdbx":
+    #         export_kdbx(args.mnemonic, args.path)
+    #     else:
+    #         print_accounts(args.mnemonic)
+    # elif args.action == "import":
+    #     if args.format == "csv":
+    #         import_csv(args.mnemonic, args.path)
+    #     elif args.format == "json":
+    #         import_json(args.mnemonic, args.path)
+    #     elif args.format == "kdbx":
+    #         import_kdbx(args.mnemonic, args.path)
+    #     else:
+    #         print("The format of the imported file should be provided with -f or --format")
+    # elif args.action == "delete":
+    #     if args.id is not None:
+    #
+    #     elif args.delete-seed is not None:
+    #
+    #     else:
+    #         print("Please state the account id using -i or --id if you want to delete a single account or --delete-seed if you want to delete ")
+
+
 def generate():
     seed = crypto.generate_seed()
     # _, signing_keypair, _ = crypto.derive_keys_from_seed(seed)
@@ -139,46 +204,4 @@ def upload_account_data(url, username, password, site_name, password_key, encryp
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Generate, recover and modify Keyn backup data.')
-    parser.add_argument("action",
-                        help="The action you want to execute: generate / recover / import")
-    parser.add_argument("-m", "--mnemonic", nargs=12,
-                        help="The 12-word mnemonic, e.g. -m "
-                             "word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12")
-    parser.add_argument("-f", "--format",
-                        help="The output format. If data is written to a .kdbx database, the path to an existing "
-                             ".kdbx database file needs to be provided with -p"),
-    parser.add_argument("-p", "--path",
-                        help="The path to where the csv file should be written / read from. Prints or reads from "
-                             "stdout if not provided")
-
-    args = parser.parse_args()
-
-    if args.action == "generate":
-        generate()
-    elif args.action == "recover":
-        if args.mnemonic:
-            if args.format == "csv":
-                export_csv(args.mnemonic, args.path)
-            elif args.format == "json":
-                export_json(args.mnemonic, args.path)
-            elif args.format == "kdbx":
-                export_kdbx(args.mnemonic, args.path)
-            else:
-                print_accounts(args.mnemonic)
-        else:
-            print("The mnemonic should be provided with -m or --mnemonic. "
-                  "E.g. keyn recover -m word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12")
-    elif args.action == "import":
-        if args.mnemonic:
-            if args.format == "csv":
-                import_csv(args.mnemonic, args.path)
-            elif args.format == "json":
-                import_json(args.mnemonic, args.path)
-            elif args.format == "kdbx":
-                import_kdbx(args.mnemonic, args.path)
-            else:
-                print("The format of the imported file should be provided with -f or --format")
-        else:
-            print("The mnemonic should be provided with -m or --mnemonic. "
-                  "E.g. keyn recover -m word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12")
+    main()
