@@ -10,68 +10,50 @@ from pykeepass import PyKeePass
 
 
 def main():
-    # top lvl parser
     parser = argparse.ArgumentParser(prog='keyn', description='Generate, recover and modify Keyn backup data.')
-    subparsers = parser.add_subparsers(prog='keyn',help='sub-command help')
+    subparsers = parser.add_subparsers(help='The action you want to execute: generate / recover / import / delete')
 
-    # ???
-    parser.add_argument("action", choices=['generate', 'recover', 'import', 'delete'],
-                        help="The action you want to execute: generate / recover / import / delete")
-    # ???
+    # generate
+    parser_generate = subparsers.add_parser('generate')
+    parser_generate.set_defaults(func=generate)
+    parser_generate.add_argument('generate', help='calls for the generator action')
 
-    # to convert to subcommands
-    # parser.add_argument("-m", "--mnemonic", nargs=12,
-    #                     help="The 12-word mnemonic, e.g. -m "
-    #                          "word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12")
-    # parser.add_argument("-f", "--format", choices=['csv', 'json', 'kdbx'],
-    #                     help="The output format. If data is written to a .kdbx database, the path to an existing .kdbx database file needs to be provided with -p"),
-    # parser.add_argument("-p", "--path",
-    #                     help="The path to where the csv file should be written / read from. Prints or reads from stdout if not provided")
-    # parser.add_argument("-i", "--id",
-    #                     help="The account id of the account that should be deleted")
-    # parser.add_argument("--delete-seed",
-    #                     help="Used in combination with the delete action to delete all data of this seed")
+    # recover
+    parser_recover = subparsers.add_parser('recover')
+    parser_recover.set_defaults(func=export_accounts)
+    parser_recover.add_argument("-f", "--format", choices=['csv', 'json', 'kdbx'],
+                                help="The output format. If data is written to a .kdbx database, "
+                                     "the path to an existing .kdbx database file needs to be provided with -p")
+    parser_recover.add_argument("-p", "--path", type=argparse.FileType(mode='w'),
+                               help="The path to where the file should be written to. "
+                                    "Accepts '-' for writing to stdout")
+    parser_recover.add_argument("-m", dest="mnemonic", metavar=crypto.random_example_seed(), nargs=12,
+                                help="The 12-word mnemonic")
 
-    #wokring
-    parser_action = subparsers.add_parser('generate')
-    parser_action.add_argument()
+    # import
+    parser_import = subparsers.add_parser('import')
+    parser_import.set_defaults(func=import_accounts)
+    parser_import.add_argument("-m", dest="mnemonic", metavar=crypto.random_example_seed(), nargs=12,
+                              help="The 12-word mnemonic")
+    parser_import.add_argument("-f", "--format", choices=['csv', 'json', 'kdbx'],
+                               help="The input format. If data is written to a .kdbx database, the path to an existing "
+                                    ".kdbx database file needs to be provided with -fi or file")
+    parser_import.add_argument("-p", "--path", type=argparse.FileType(mode='r'),
+                               help="The path to where the file should be written to. "
+                                    "Accepts '-' for reading from stdin")
 
+    # delete
+    parser_delete = subparsers.add_parser('delete')
+    parser_delete.set_defaults(func=delete_accounts)
+    group = parser_delete.add_mutually_exclusive_group(required=True)
+    group.add_argument("-m", dest="mnemonic", metavar=crypto.random_example_seed(), nargs=12,
+                               help="The 12-word mnemonic")
+    group.add_argument("-i", "--id",
+                               help="The account id of the account that should be deleted")
 
+    #misc
     args = parser.parse_args()
-
-    # if args.action == "generate":
-    #     generate()
-    #     return
-    # elif args.mnemonic is None:
-    #     print("The mnemonic should be provided with -m or --mnemonic. "
-    #           "E.g. keyn recover -m word1 word2 word3 word4 word5 word6 word7 word8 word9 word10 word11 word12")
-    #     return
-    #
-    # if args.action == "recover":
-    #     if args.format == "csv":
-    #         export_csv(args.mnemonic, args.path)
-    #     elif args.format == "json":
-    #         export_json(args.mnemonic, args.path)
-    #     elif args.format == "kdbx":
-    #         export_kdbx(args.mnemonic, args.path)
-    #     else:
-    #         print_accounts(args.mnemonic)
-    # elif args.action == "import":
-    #     if args.format == "csv":
-    #         import_csv(args.mnemonic, args.path)
-    #     elif args.format == "json":
-    #         import_json(args.mnemonic, args.path)
-    #     elif args.format == "kdbx":
-    #         import_kdbx(args.mnemonic, args.path)
-    #     else:
-    #         print("The format of the imported file should be provided with -f or --format")
-    # elif args.action == "delete":
-    #     if args.id is not None:
-    #
-    #     elif args.delete-seed is not None:
-    #
-    #     else:
-    #         print("Please state the account id using -i or --id if you want to delete a single account or --delete-seed if you want to delete ")
+    args.func(args)
 
 
 def generate():
@@ -92,7 +74,6 @@ def print_accounts(mnemonic):
         print("Password:\t%s" % account["password"])
         print("Site:\t\t%s" % account["site_name"])
         print("URL:\t\t%s" % account["url"])
-
     print("-------------------------")
 
 
@@ -118,69 +99,62 @@ def recover(mnemonic):
     return accounts_export
 
 
-def import_csv(mnemonic, path):
-    seed = crypto.recover(mnemonic) if mnemonic is not None else crypto.generate_seed()
+def import_accounts(args):
+    seed = crypto.recover(args.mnemonic) if args.mnemonic is not None else crypto.generate_seed()
     password_key, signing_keypair, encryption_key = crypto.derive_keys_from_seed(seed)
-    with open(path) as file:
-        csv_reader = csv.reader(file, delimiter=',')
-        next(csv_reader, None)
-        for row in csv_reader:
-            upload_account_data(row[0], row[1], row[2], row[3], password_key, encryption_key, signing_keypair)
+    if args.format == "csv":
+        accounts = csv.DictReader(args.path, fieldnames=["url", "username", "password", "site_name"])
+        next(accounts, None)
+        for account in accounts:
+            upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
+                                password_key, signing_keypair, encryption_key)
+    elif args.format == "json":
+        accounts = json.load(args.path)
+        for account in accounts:
+            upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
+                                password_key, signing_keypair, encryption_key)
+    elif args.format == "kdbx":
+        password = getpass.getpass(prompt='Please provide your .kdbx database password: ')
+        with PyKeePass(args.path.name, password=password) as kp:
+            for account in kp.entries:
+                upload_account_data(account.url, account.username, account.password,
+                                    account.title, password_key, signing_keypair, encryption_key)
+    else:
+        print("The format of the imported file should be provided with -f or --format")
 
 
-def export_csv(mnemonic, path):
-    accounts = recover(mnemonic)
-
-    with open(path, mode='w') if path is not None else sys.stdout as file:
-        csv_writer = csv.writer(file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
-        csv_writer.writerow(['URL', 'Username', 'Password', 'Site'])
+def export_accounts(args):
+    if args.format == "csv":
+        accounts = recover(args.mnemonic)
+        csv_writer = csv.writer(args.path, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+        csv_writer.writerow(['url', 'username', 'password', 'site_name'])
         for account in accounts:
             csv_writer.writerow([account["url"], account["username"], account["password"], account["site_name"]])
+    elif args.format == "json":
+        accounts = recover(args.mnemonic)
+        json.dump(accounts, args.path, indent=4)
+    elif args.format == "kdbx":
+        accounts = recover(args.mnemonic)
+        password = getpass.getpass(prompt='Please provide your .kdbx database password: ')
+        with PyKeePass(args.path.name, password=password) as kp:
+            for account in accounts:
+                kp.add_entry(kp.root_group, account["site_name"], account["username"], account["password"],
+                             account["url"])
+            kp.save(args.path.name)
+    else:
+        print_accounts(args.mnemonic)
 
 
-def import_json(mnemonic, path):
-    seed = crypto.recover(mnemonic) if mnemonic is not None else crypto.generate_seed()
-    password_key, signing_keypair, encryption_key = crypto.derive_keys_from_seed(seed)
-
-    with open(path, mode='r') as file:
-        accounts = json.load(file)
-
-    for account in accounts:
-        upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
-                            password_key, encryption_key, signing_keypair)
+def delete_accounts(args):
+    if args.id is not None:
+        # delete account
+        print("none")
+    else:
+        # delete seed
+        print("one")
 
 
-def export_json(mnemonic, path):
-    accounts = recover(mnemonic)
-
-    with open(path, mode='w') if path is not None else sys.stdout as file:
-        json.dump(accounts, file, indent=4)
-
-
-def import_kdbx(mnemonic, path):
-    seed = crypto.recover(mnemonic) if mnemonic is not None else crypto.generate_seed()
-    password_key, signing_keypair, encryption_key = crypto.derive_keys_from_seed(seed)
-
-    password = getpass.getpass(prompt='Please provide your .kdbx database password: ')
-
-    with PyKeePass(path, password=password) as kp:
-        for account in kp.entries:
-            upload_account_data(account.url, account.username, account.password,
-                                account.title, password_key, encryption_key, signing_keypair)
-
-
-def export_kdbx(mnemonic, path):
-    accounts = recover(mnemonic)
-
-    password = getpass.getpass(prompt='Please provide your .kdbx database password: ')
-
-    with PyKeePass(path, password=password) as kp:
-        for account in accounts:
-            kp.add_entry(kp.root_group, account["site_name"], account["username"], account["password"], account["url"])
-            kp.save(path)
-
-
-def upload_account_data(url, username, password, site_name, password_key, encryption_key, signing_keypair):
+def upload_account_data(url, username, password, site_name, password_key, signing_keypair, encryption_key):
     site_id, secondary_site_id = crypto.get_site_ids(url)
     site_id = site_id.decode("utf-8")
     account_id = crypto.generic_hash_string(("%s_%s" % (site_id, username)))

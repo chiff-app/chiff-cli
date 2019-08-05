@@ -1,3 +1,4 @@
+import secrets
 import nacl.utils, nacl.encoding
 from nacl.hash import sha256, blake2b
 import nacl.signing
@@ -14,6 +15,11 @@ BACKUP_CONTEXT = "keynback"
 PASSWORD_CONTEXT = "keynpass"
 PASSWORD_KEY_INDEX = 0
 BACKUP_KEY_INDEX = 1
+
+def random_example_seed():
+    with open('wordlist.txt') as wordfile:
+        words = wordfile.read().splitlines()
+        return tuple(map(lambda i: words[i], [secrets.randbelow(2048) for _ in range(1, 13)]))
 
 
 def generate_seed():
