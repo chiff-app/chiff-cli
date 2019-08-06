@@ -84,15 +84,17 @@ def recover(mnemonic):
     accounts_export = []
     for id, account in accounts.items():
         decrypted_account_byte = crypto.decrypt(account, decryption_key)
-        decrypted_account_string = decrypted_account_byte.decode('utf-8').replace("'", '"')
+        decrypted_account_string = decrypted_account_byte.decode('utf-8')
         decrypted_account = json.loads(decrypted_account_string)
 
         username = decrypted_account["username"]
         site = decrypted_account["sites"][0]
+        offset = decrypted_account["passwordOffset"] if "passwordOffset" in decrypted_account else None
+        ppd = site["ppd"] if "ppd" in site else None
 
-        generator = PasswordGenerator(username, site["id"], password_key, None)
+        generator = PasswordGenerator(username, site["id"], password_key, ppd)
         password, index = generator.generate(decrypted_account["passwordIndex"],
-                                             decrypted_account["passwordOffset"])
+                                             offset)
         accounts_export.append({"id": id, "username": username, "password": password,
                                 "url": site["url"], "site_name": site["name"]})
 
@@ -157,8 +159,9 @@ def delete_accounts(args):
 def upload_account_data(url, username, password, site_name, password_key, signing_keypair, encryption_key):
     site_id, secondary_site_id = crypto.get_site_ids(url)
     site_id = site_id.decode("utf-8")
+    ppd = api.get_ppd(site_id)
     account_id = crypto.generic_hash_string(("%s_%s" % (site_id, username)))
-    generator = PasswordGenerator(username, site_id, password_key, None)
+    generator = PasswordGenerator(username, site_id, password_key, ppd)
     offset = generator.calculate_offset(0, password)
     account = {
         'id': account_id,

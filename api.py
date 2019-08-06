@@ -3,6 +3,7 @@ import time
 import crypto
 
 API_URL = "https://api.keyn.app/dev/backup"
+PPD_URL = "https://api.keyn.app/dev/ppd"
 
 
 def get_backup_data(keypair):
@@ -42,3 +43,11 @@ def delete_account(id, keypair):
         "id": id
     }, keypair)
     return requests.delete(url, params=params, headers=headers).json()
+
+
+def get_ppd(id):
+    headers = {'Content-Type': 'application/json',
+               'Accept': 'application/json'}
+    params = {'v': '1'}
+    url = '%s/%s' % (PPD_URL, id)
+    return requests.get(url, params=params, headers=headers).json()
