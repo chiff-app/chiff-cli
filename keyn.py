@@ -73,8 +73,7 @@ def create_seed():
     return seed
 
 
-def print_accounts(mnemonic):
-    accounts = recover(mnemonic)
+def print_accounts(accounts):
     for account in accounts:
         print("-------------------------")
         print("Id:\t\t%s" % account["id"])
@@ -85,15 +84,18 @@ def print_accounts(mnemonic):
     print("-------------------------")
 
 
-def recover(mnemonic):
-    seed = crypto.recover(mnemonic)
+def export_accounts(args):
+    seed = crypto.recover(args.mnemonic)
     password_key, signing_keypair, decryption_key = crypto.derive_keys_from_seed(seed)
-    accounts = api.get_backup_data(signing_keypair)
-    if not accounts.items():
+    encrypted_accounts_data = api.get_backup_data(signing_keypair)
+    accounts = []
+
+    if not encrypted_accounts_data.items():
         raise Exception("Seed does not exist")
-    accounts_export = []
-    for id, account in accounts.items():
-        decrypted_account_byte = crypto.decrypt(account, decryption_key)
+
+    # Recovers the backup data from the server and decrypts it
+    for id, encrypted_account in encrypted_accounts_data.items():
+        decrypted_account_byte = crypto.decrypt(encrypted_account, decryption_key)
         decrypted_account_string = decrypted_account_byte.decode('utf-8')
         decrypted_account = json.loads(decrypted_account_string)
 
@@ -103,12 +105,27 @@ def recover(mnemonic):
         ppd = site["ppd"] if "ppd" in site else None
 
         generator = PasswordGenerator(username, site["id"], password_key, ppd)
-        password, index = generator.generate(decrypted_account["passwordIndex"],
-                                             offset)
-        accounts_export.append({"id": id, "username": username, "password": password,
-                                "url": site["url"], "site_name": site["name"]})
+        password, index = generator.generate(decrypted_account["passwordIndex"], offset)
+        accounts.append({"id": id, "username": username, "password": password, "url": site["url"],
+                         "site_name": site["name"]})
 
-    return accounts_export
+    # Exports the account data
+    if args.format == "csv":
+        csv_writer = csv.writer(args.path, delimiter=',', quoting=csv.QUOTE_MINIMAL)
+        csv_writer.writerow(['url', 'username', 'password', 'site_name'])
+        for account in accounts:
+            csv_writer.writerow([account["url"], account["username"], account["password"], account["site_name"]])
+    elif args.format == "json":
+        json.dump(accounts, args.path, indent=4)
+    elif args.format == "kdbx":
+        password = getpass.getpass(prompt='Please provide your .kdbx database password: ')
+        with PyKeePass(args.path.name, password=password) as kp:
+            for account in accounts:
+                kp.add_entry(kp.root_group, account["site_name"], account["username"], account["password"],
+                             account["url"])
+            kp.save(args.path.name)
+    else:
+        print_accounts(accounts)
 
 
 def import_accounts(args):
@@ -138,28 +155,6 @@ def import_accounts(args):
             print("The format of the imported file should be provided with -f or --format")
         print("Your accounts have been uploaded")
         print("Please write down your mnemonic: %s" % (args.mnemonic if args.mnemonic is not None else " ".join(crypto.mnemonic(seed))))
-
-
-def export_accounts(args):
-    if args.format == "csv":
-        accounts = recover(args.mnemonic)
-        csv_writer = csv.writer(args.path, delimiter=',', quoting=csv.QUOTE_MINIMAL)
-        csv_writer.writerow(['url', 'username', 'password', 'site_name'])
-        for account in accounts:
-            csv_writer.writerow([account["url"], account["username"], account["password"], account["site_name"]])
-    elif args.format == "json":
-        accounts = recover(args.mnemonic)
-        json.dump(accounts, args.path, indent=4)
-    elif args.format == "kdbx":
-        accounts = recover(args.mnemonic)
-        password = getpass.getpass(prompt='Please provide your .kdbx database password: ')
-        with PyKeePass(args.path.name, password=password) as kp:
-            for account in accounts:
-                kp.add_entry(kp.root_group, account["site_name"], account["username"], account["password"],
-                             account["url"])
-            kp.save(args.path.name)
-    else:
-        print_accounts(args.mnemonic)
 
 
 def delete_accounts(args):
