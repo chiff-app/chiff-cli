@@ -42,9 +42,6 @@ class PasswordGenerator:
         if not validator.validate_max_length(password):
             raise ValueError("The password is too long.")
 
-        if not validator.validate_characters(password, chars):
-            raise ValueError("The password contains a character that is not allowed.")
-
         key = crypto.password_key(self.seed, self.site_id, index, self.username)
         bit_length = length * math.ceil(math.log2(len(chars))) + (128 + length - (128 % length))
         byte_length = int(self.round_up(n=bit_length, m=(length * 8)) / 8)

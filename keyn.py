@@ -5,6 +5,7 @@ import json
 import csv
 import sys
 import getpass
+import time
 from password_generator import PasswordGenerator
 from pykeepass import PyKeePass
 
@@ -46,10 +47,12 @@ def main():
     parser_delete = subparsers.add_parser('delete')
     parser_delete.set_defaults(func=delete_accounts)
     group = parser_delete.add_mutually_exclusive_group(required=True)
-    group.add_argument("-m", dest="mnemonic", metavar=crypto.random_example_seed(), nargs=12,
+    parser_delete.add_argument("-m", dest="mnemonic", metavar=crypto.random_example_seed(), nargs=12, required=True,
                                help="The 12-word mnemonic")
     group.add_argument("-i", "--id",
                                help="The account id of the account that should be deleted")
+    group.add_argument("--delete-seed", dest="delete_seed", action="store_true",
+                       help="Delete the backup data for this seed")
 
     #misc
     args = parser.parse_args()
@@ -57,12 +60,17 @@ def main():
 
 
 def generate():
-    seed = crypto.generate_seed()
-    # _, signing_keypair, _ = crypto.derive_keys_from_seed(seed)
-    # api.create_backup_data(signing_keypair)
-    mnemonic = crypto.mnemonic(seed)
+    mnemonic = crypto.mnemonic(create_seed())
     print("The seed has been generated. Please write it down and store it in a safe place:")
     print(" ".join(mnemonic))
+
+
+def create_seed():
+    seed = crypto.generate_seed()
+    _, signing_keypair, _ = crypto.derive_keys_from_seed(seed)
+    api.create_backup_data(signing_keypair)
+
+    return seed
 
 
 def print_accounts(mnemonic):
@@ -81,6 +89,8 @@ def recover(mnemonic):
     seed = crypto.recover(mnemonic)
     password_key, signing_keypair, decryption_key = crypto.derive_keys_from_seed(seed)
     accounts = api.get_backup_data(signing_keypair)
+    if not accounts.items():
+        raise Exception("Seed does not exist")
     accounts_export = []
     for id, account in accounts.items():
         decrypted_account_byte = crypto.decrypt(account, decryption_key)
@@ -102,27 +112,32 @@ def recover(mnemonic):
 
 
 def import_accounts(args):
-    seed = crypto.recover(args.mnemonic) if args.mnemonic is not None else crypto.generate_seed()
-    password_key, signing_keypair, encryption_key = crypto.derive_keys_from_seed(seed)
-    if args.format == "csv":
-        accounts = csv.DictReader(args.path, fieldnames=["url", "username", "password", "site_name"])
-        next(accounts, None)
-        for account in accounts:
-            upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
-                                password_key, signing_keypair, encryption_key)
-    elif args.format == "json":
-        accounts = json.load(args.path)
-        for account in accounts:
-            upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
-                                password_key, signing_keypair, encryption_key)
-    elif args.format == "kdbx":
-        password = getpass.getpass(prompt='Please provide your .kdbx database password: ')
-        with PyKeePass(args.path.name, password=password) as kp:
-            for account in kp.entries:
-                upload_account_data(account.url, account.username, account.password,
-                                    account.title, password_key, signing_keypair, encryption_key)
-    else:
-        print("The format of the imported file should be provided with -f or --format")
+    # if args.mnemonic is None:
+    #     obtain_mnemonic()
+    # else:
+        seed = crypto.recover(args.mnemonic) if args.mnemonic is not None else create_seed()
+        password_key, signing_keypair, encryption_key = crypto.derive_keys_from_seed(seed)
+        if args.format == "csv":
+            accounts = csv.DictReader(args.path, fieldnames=["url", "username", "password", "site_name"])
+            next(accounts, None)
+            for account in accounts:
+                upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
+                                    password_key, signing_keypair, encryption_key)
+        elif args.format == "json":
+            accounts = json.load(args.path)
+            for account in accounts:
+                upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
+                                    password_key, signing_keypair, encryption_key)
+        elif args.format == "kdbx":
+            password = getpass.getpass(prompt='Please provide your .kdbx database password: ')
+            with PyKeePass(args.path.name, password=password) as kp:
+                for account in kp.entries:
+                    upload_account_data(account.url, account.username, account.password,
+                                        account.title, password_key, signing_keypair, encryption_key)
+        # else:
+            print("The format of the imported file should be provided with -f or --format")
+        print("Your accounts have been uploaded")
+        print("Please write down your mnemonic: %s" % (args.mnemonic if args.mnemonic is not None else " ".join(crypto.mnemonic(seed))))
 
 
 def export_accounts(args):
@@ -148,12 +163,11 @@ def export_accounts(args):
 
 
 def delete_accounts(args):
+    password_key, signing_keypair, encryption_key = crypto.derive_keys_from_seed(crypto.recover(args.mnemonic))
     if args.id is not None:
-        # delete account
-        print("none")
-    else:
-        # delete seed
-        print("one")
+        api.delete_account(args.id, signing_keypair)
+    elif args.delete_seed:
+        api.delete_seed(signing_keypair)
 
 
 def upload_account_data(url, username, password, site_name, password_key, signing_keypair, encryption_key):
@@ -169,7 +183,7 @@ def upload_account_data(url, username, password, site_name, password_key, signin
             'id': site_id,
             'url': url,
             'name': site_name,
-            'ppd': None}],
+            'ppd': ppd}],
         'username': username,
         'passwordIndex': 0,
         'lastPasswordUpdateTryIndex': 0,

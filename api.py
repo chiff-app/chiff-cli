@@ -45,9 +45,20 @@ def delete_account(id, keypair):
     return requests.delete(url, params=params, headers=headers).json()
 
 
+def delete_seed(keypair):
+    url, params, headers = sign_request({
+        "httpMethod": "DELETE"
+    }, keypair)
+    return requests.delete("%s/all" % url, params=params, headers=headers).json()
+
+
 def get_ppd(id):
     headers = {'Content-Type': 'application/json',
                'Accept': 'application/json'}
     params = {'v': '1'}
     url = '%s/%s' % (PPD_URL, id)
-    return requests.get(url, params=params, headers=headers).json()
+    result = requests.get(url, params=params, headers=headers)
+    if result.status_code == 200:
+        return result.json()
+    elif result.status_code != 404:
+        raise Exception("A network error occurred: %d" % result.status_code)
