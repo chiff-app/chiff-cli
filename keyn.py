@@ -16,12 +16,11 @@ def main():
 
     # generate
     parser_generate = subparsers.add_parser('generate')
-    parser_generate.set_defaults(func=generate)
-    parser_generate.add_argument('generate', help='calls for the generator action')
+    parser_generate.set_defaults(func=generate, name='generate')
 
     # recover
     parser_recover = subparsers.add_parser('recover')
-    parser_recover.set_defaults(func=export_accounts)
+    parser_recover.set_defaults(func=export_accounts, name='recover')
     parser_recover.add_argument("-f", "--format", choices=['csv', 'json', 'kdbx'],
                                 help="The output format. If data is written to a .kdbx database, "
                                      "the path to an existing .kdbx database file needs to be provided with -p")
@@ -33,7 +32,7 @@ def main():
 
     # import
     parser_import = subparsers.add_parser('import')
-    parser_import.set_defaults(func=import_accounts)
+    parser_import.set_defaults(func=import_accounts, name='import')
     parser_import.add_argument("-m", dest="mnemonic", metavar=crypto.random_example_seed(), nargs=12,
                               help="The 12-word mnemonic")
     parser_import.add_argument("-f", "--format", choices=['csv', 'json', 'kdbx'],
@@ -45,7 +44,7 @@ def main():
 
     # delete
     parser_delete = subparsers.add_parser('delete')
-    parser_delete.set_defaults(func=delete_accounts)
+    parser_delete.set_defaults(func=delete_accounts, name='delete')
     group = parser_delete.add_mutually_exclusive_group(required=True)
     parser_delete.add_argument("-m", dest="mnemonic", metavar=crypto.random_example_seed(), nargs=12, required=True,
                                help="The 12-word mnemonic")
@@ -54,12 +53,13 @@ def main():
     group.add_argument("--delete-seed", dest="delete_seed", action="store_true",
                        help="Delete the backup data for this seed")
 
-    #misc
     args = parser.parse_args()
+    if args.name == "recover" and ((args.path is None) != (args.format is None)):
+        parser.error("If the path is provided, format should be given as well and vice versa.")
     args.func(args)
 
 
-def generate():
+def generate(_):
     mnemonic = crypto.mnemonic(create_seed())
     print("The seed has been generated. Please write it down and store it in a safe place:")
     print(" ".join(mnemonic))
@@ -73,19 +73,11 @@ def create_seed():
     return seed
 
 
-def print_accounts(accounts):
-    for account in accounts:
-        print("-------------------------")
-        print("Id:\t\t%s" % account["id"])
-        print("Username:\t%s" % account["username"])
-        print("Password:\t%s" % account["password"])
-        print("Site:\t\t%s" % account["site_name"])
-        print("URL:\t\t%s" % account["url"])
-    print("-------------------------")
-
-
 def export_accounts(args):
-    seed = crypto.recover(args.mnemonic)
+    if args.mnemonic is None:
+        seed = obtain_mnemonic()
+    else:
+        seed = crypto.recover(args.mnemonic)
     password_key, signing_keypair, decryption_key = crypto.derive_keys_from_seed(seed)
     encrypted_accounts_data = api.get_backup_data(signing_keypair)
     accounts = []
@@ -151,7 +143,7 @@ def import_accounts(args):
                 for account in kp.entries:
                     upload_account_data(account.url, account.username, account.password,
                                         account.title, password_key, signing_keypair, encryption_key)
-        # else:
+        else:
             print("The format of the imported file should be provided with -f or --format")
         print("Your accounts have been uploaded")
         print("Please write down your mnemonic: %s" % (args.mnemonic if args.mnemonic is not None else " ".join(crypto.mnemonic(seed))))
@@ -163,6 +155,17 @@ def delete_accounts(args):
         api.delete_account(args.id, signing_keypair)
     elif args.delete_seed:
         api.delete_seed(signing_keypair)
+
+
+def print_accounts(accounts):
+    for account in accounts:
+        print("-------------------------")
+        print("Id:\t\t%s" % account["id"])
+        print("Username:\t%s" % account["username"])
+        print("Password:\t%s" % account["password"])
+        print("Site:\t\t%s" % account["site_name"])
+        print("URL:\t\t%s" % account["url"])
+    print("-------------------------")
 
 
 def upload_account_data(url, username, password, site_name, password_key, signing_keypair, encryption_key):
@@ -187,6 +190,36 @@ def upload_account_data(url, username, password, site_name, password_key, signin
     }
     ciphertext = crypto.encrypt(json.dumps(account).encode("utf-8"), encryption_key)
     api.set_backup_data(account_id, ciphertext, signing_keypair)
+
+
+def obtain_mnemonic():
+    print("Please enter the twelve word mnemonic")
+    mnemonic = getpass.getpass(prompt="mnemonic:")
+    try:
+        words = mnemonic.split(" ")
+        if len(words) != 12:
+            raise Exception("the mnemonic should consist of 12 words")
+        return crypto.recover(words)
+    except Exception as exception:
+        print("An error occurred: %s" % exception.args)
+        return obtain_mnemonic()
+    else:
+        print("it works!")
+
+    # print("The mnemonic is not provided. Please select one of the 2 options")
+    # print("(1) create a new mnemonic")
+    # print("(2) use an existing one")
+    # answer = input("answer: ")
+    #
+    # if answer == '1':
+    #     generate()
+    # elif answer == '2':
+    # print("Please enter the twelve word mnumonic")
+    # mnumonic = input("mnumonic:")
+    # try:
+    #     print(crypto.recover(mnumonic))
+    # except:
+    #     raise Exception("Invalid mnemonic")
 
 
 if __name__ == '__main__':
