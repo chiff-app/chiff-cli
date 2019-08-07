@@ -23,8 +23,7 @@ def generate():
 
 
 @main.command(name='recover')
-@click.option('-m', '--mnemonic', nargs=12, help='The 12-word mnemonic', prompt="Please enter the mnemonic: ",
-              hide_input=True)
+@click.option('-m', '--mnemonic', nargs=12, help='The 12-word mnemonic')
 @click.option('-f', '--format', type=click.Choice(['csv', 'json', 'kdbx']),
               help='The output format. If data is written to a .kdbx database, '
                    'the path to an existing .kdbx database file needs to be provided with -p.')
@@ -32,7 +31,11 @@ def generate():
               help='The path to where the file should be written to.')
 def export_accounts(mnemonic, format, path):
     click.echo("Starting account export...")
-    seed = crypto.recover(mnemonic)
+    if mnemonic:
+        seed = crypto.recover(mnemonic)
+    else:
+        seed = crypto.recover(obtain_mnemonic())
+
     password_key, signing_keypair, decryption_key = crypto.derive_keys_from_seed(seed)
     encrypted_accounts_data = api.get_backup_data(signing_keypair)
 
@@ -57,7 +60,7 @@ def export_accounts(mnemonic, format, path):
         with PyKeePass(path, password=password) as kp:
             for account in accounts:
                 kp.add_entry(kp.root_group, account["site_name"], account["username"], account["password"],
-                             account["url"])
+                             account["url"], "Imported from Keyn")
             kp.save(path)
     else:
         for account in accounts:
@@ -68,6 +71,7 @@ def export_accounts(mnemonic, format, path):
             click.echo("Site:\t\t%s" % account["site_name"])
             click.echo("URL:\t\t%s" % account["url"])
         click.echo("-------------------------")
+        click.echo("Account export completed!")
 
 
 @main.command(name='import')
@@ -95,8 +99,7 @@ def import_accounts(mnemonic, format, path):
                                     password_key, signing_keypair, encryption_key)
     elif format == "json":
         with open(path, mode='r') as file:
-            accounts = json.load(file)
-            for account in accounts:
+            for account in json.load(file):
                 upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
                                     password_key, signing_keypair, encryption_key)
     elif format == "kdbx":
@@ -105,10 +108,8 @@ def import_accounts(mnemonic, format, path):
             for account in kp.entries:
                 upload_account_data(account.url, account.username, account.password,
                                     account.title, password_key, signing_keypair, encryption_key)
-
     click.echo("Your accounts have been uploaded successfully!")
-    click.echo("Please write down your mnemonic: %s" % (mnemonic if mnemonic is not None
-                                                        else " ".join(crypto.mnemonic(seed))))
+    click.echo("Please write down your mnemonic: %s" % " ".join(crypto.mnemonic(seed)))
 
 
 @main.command(name='delete')
@@ -222,6 +223,7 @@ def obtain_mnemonic():
         words = mnemonic.split(" ")
         if len(words) != 12:
             raise Exception("the mnemonic should consist of 12 words")
+        return words
     except Exception as exception:
         print("\nError: %s\n" % exception.args)
         return obtain_mnemonic()
@@ -238,7 +240,7 @@ Answer''', type=click.Choice(['1', '2']), show_choices=False)
     if selection == '1':
         return create_seed()
     else:
-        return obtain_mnemonic()
+        return crypto.recover(obtain_mnemonic())
 
 
 if __name__ == '__main__':

@@ -7,6 +7,11 @@ import nacl.utils
 import tldextract
 from urllib.parse import urlparse
 from functools import reduce
+try:
+    import importlib.resources as pkg_resources
+except ImportError:
+    # Try backported to PY<37 `importlib_resources`.
+    import importlib_resources as pkg_resources
 
 
 SEED_SIZE = 16
@@ -15,12 +20,12 @@ BACKUP_CONTEXT = "keynback"
 PASSWORD_CONTEXT = "keynpass"
 PASSWORD_KEY_INDEX = 0
 BACKUP_KEY_INDEX = 1
+WORD_LIST = pkg_resources.read_text('keyn', "wordlist.txt")
 
 
 def random_example_seed():
-    with open('wordlist.txt') as wordfile:
-        words = wordfile.read().splitlines()
-        return tuple(map(lambda i: words[i], [secrets.randbelow(2048) for _ in range(1, 13)]))
+    words = WORD_LIST.splitlines()
+    return tuple(map(lambda i: words[i], [secrets.randbelow(2048) for _ in range(1, 13)]))
 
 
 def generate_seed():
@@ -32,23 +37,21 @@ def mnemonic(seed):
     bitstring = reduce((lambda x, y: x + y), map(lambda x: bin(x)[2:].zfill(8), seed))
     bitstring += bin(hash[0])[2:].zfill(8)[:4]
     indices = map(lambda x: int(x, 2), [bitstring[start:start+11] for start in range(0, len(bitstring), 11)])
-    with open('wordlist.txt') as wordfile:
-        words = wordfile.read().splitlines()
-        return map(lambda i: words[i], indices)
+    words = WORD_LIST.splitlines()
+    return map(lambda i: words[i], indices)
 
 
 def recover(mnemonic):
-    with open('wordlist.txt') as wordfile:
-        words = wordfile.read().splitlines()
-        bitstring = reduce((lambda x, y: x + y), map(lambda x: bin(words.index(x.strip()))[2:].zfill(11), mnemonic))
-        checksum = bitstring[-4:]
-        bitstring = bitstring[:-4]
-        seed = bytes(map(lambda x: int(x, 2), [bitstring[start:start + 8] for start in range(0, len(bitstring), 8)]))
-        hash = bin(sha256(seed, encoder=nacl.encoding.RawEncoder)[0])[2:].zfill(8)[:4]
-        if hash == checksum:
-            return seed
-        else:
-            raise Exception("Invalid mnemonic")
+    words = WORD_LIST.splitlines()
+    bitstring = reduce((lambda x, y: x + y), map(lambda x: bin(words.index(x.strip()))[2:].zfill(11), mnemonic))
+    checksum = bitstring[-4:]
+    bitstring = bitstring[:-4]
+    seed = bytes(map(lambda x: int(x, 2), [bitstring[start:start + 8] for start in range(0, len(bitstring), 8)]))
+    hash = bin(sha256(seed, encoder=nacl.encoding.RawEncoder)[0])[2:].zfill(8)[:4]
+    if hash == checksum:
+        return seed
+    else:
+        raise Exception("Invalid mnemonic")
 
 
 def derive_keys_from_seed(seed):
