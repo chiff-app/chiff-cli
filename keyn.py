@@ -3,7 +3,6 @@ import crypto
 import api
 import json
 import csv
-import sys
 import getpass
 import time
 from password_generator import PasswordGenerator
@@ -35,10 +34,10 @@ def main():
     parser_import.set_defaults(func=import_accounts, name='import')
     parser_import.add_argument("-m", dest="mnemonic", metavar=crypto.random_example_seed(), nargs=12,
                               help="The 12-word mnemonic")
-    parser_import.add_argument("-f", "--format", choices=['csv', 'json', 'kdbx'],
+    parser_import.add_argument("-f", "--format", choices=['csv', 'json', 'kdbx'], required=True,
                                help="The input format. If data is written to a .kdbx database, the path to an existing "
                                     ".kdbx database file needs to be provided with -fi or file")
-    parser_import.add_argument("-p", "--path", type=argparse.FileType(mode='r'),
+    parser_import.add_argument("-p", "--path", type=argparse.FileType(mode='r'), required=True,
                                help="The path to where the file should be written to. "
                                     "Accepts '-' for reading from stdin")
 
@@ -121,32 +120,30 @@ def export_accounts(args):
 
 
 def import_accounts(args):
-    # if args.mnemonic is None:
-    #     obtain_mnemonic()
-    # else:
-        seed = crypto.recover(args.mnemonic) if args.mnemonic is not None else create_seed()
-        password_key, signing_keypair, encryption_key = crypto.derive_keys_from_seed(seed)
-        if args.format == "csv":
-            accounts = csv.DictReader(args.path, fieldnames=["url", "username", "password", "site_name"])
-            next(accounts, None)
-            for account in accounts:
-                upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
-                                    password_key, signing_keypair, encryption_key)
-        elif args.format == "json":
-            accounts = json.load(args.path)
-            for account in accounts:
-                upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
-                                    password_key, signing_keypair, encryption_key)
-        elif args.format == "kdbx":
-            password = getpass.getpass(prompt='Please provide your .kdbx database password: ')
-            with PyKeePass(args.path.name, password=password) as kp:
-                for account in kp.entries:
-                    upload_account_data(account.url, account.username, account.password,
-                                        account.title, password_key, signing_keypair, encryption_key)
-        else:
-            print("The format of the imported file should be provided with -f or --format")
-        print("Your accounts have been uploaded")
-        print("Please write down your mnemonic: %s" % (args.mnemonic if args.mnemonic is not None else " ".join(crypto.mnemonic(seed))))
+    if args.mnemonic is None:
+        seed = select_seed()
+    else:
+        seed = crypto.recover(args.mnemonic)
+    password_key, signing_keypair, encryption_key = crypto.derive_keys_from_seed(seed)
+    if args.format == "csv":
+        accounts = csv.DictReader(args.path, fieldnames=["url", "username", "password", "site_name"])
+        next(accounts, None)
+        for account in accounts:
+            upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
+                                password_key, signing_keypair, encryption_key)
+    elif args.format == "json":
+        accounts = json.load(args.path)
+        for account in accounts:
+            upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
+                                password_key, signing_keypair, encryption_key)
+    elif args.format == "kdbx":
+        password = getpass.getpass(prompt='Please provide your .kdbx database password: ')
+        with PyKeePass(args.path.name, password=password) as kp:
+            for account in kp.entries:
+                upload_account_data(account.url, account.username, account.password,
+                                    account.title, password_key, signing_keypair, encryption_key)
+    print("Your accounts have been uploaded")
+    print("Please write down your mnemonic: %s" % (args.mnemonic if args.mnemonic is not None else " ".join(crypto.mnemonic(seed))))
 
 
 def delete_accounts(args):
@@ -201,25 +198,26 @@ def obtain_mnemonic():
             raise Exception("the mnemonic should consist of 12 words")
         return crypto.recover(words)
     except Exception as exception:
-        print("An error occurred: %s" % exception.args)
+        print("An error occurred: %s\n" % exception.args)
+        time.sleep(1)
         return obtain_mnemonic()
     else:
         print("it works!")
 
-    # print("The mnemonic is not provided. Please select one of the 2 options")
-    # print("(1) create a new mnemonic")
-    # print("(2) use an existing one")
-    # answer = input("answer: ")
-    #
-    # if answer == '1':
-    #     generate()
-    # elif answer == '2':
-    # print("Please enter the twelve word mnumonic")
-    # mnumonic = input("mnumonic:")
-    # try:
-    #     print(crypto.recover(mnumonic))
-    # except:
-    #     raise Exception("Invalid mnemonic")
+
+def select_seed():
+    print("Mnemonic not provided. Please select one of the following options:\n"
+          "(1) Generate a new seed\n"
+          "(2) Insert the mnemonic manually")
+    selection = input("Option: ")
+    if selection == '1':
+        return create_seed()
+    elif selection == '2':
+        return obtain_mnemonic()
+    else:
+        print("Please select option 1 or 2\n")
+        time.sleep(1)
+        return select_seed()
 
 
 if __name__ == '__main__':
