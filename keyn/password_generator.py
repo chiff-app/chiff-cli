@@ -1,6 +1,5 @@
-import crypto
 import math
-import password_validator
+from keyn import password_validator, crypto
 
 
 class PasswordGenerator:

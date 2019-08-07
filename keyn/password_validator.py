@@ -1,4 +1,3 @@
-import crypto
 import re
 
 FALLBACK_PASSWORD_LENGTH = 22
@@ -23,28 +22,28 @@ class PasswordValidator:
 
     def validate(self, password):
         # Checks if password is less than or equal to maximum length. Relevant for custom passwords.
-        True if self.validate_max_length(password) else False
+        return True if self.validate_max_length(password) else False
 
         # Checks is password is less than or equal to minimum length. Relevant for custom passwords.
-        True if self.validate_min_length(password) else False
+        return True if self.validate_min_length(password) else False
 
         # Checks if password doesn't contain unallowed characters
-        True if self.validate_characters(password) else False
+        return True if self.validate_characters(password) else False
 
         # Max consecutive characters. This tests if n characteres are the same
-        True if self.validate_consecutive_characters(password) else False
+        return True if self.validate_consecutive_characters(password) else False
 
         # Max consecutive characters. This tests if n characters are an ordered sequence.
-        True if self.validate_consecutive_ordered_characters(password) else False
+        return True if self.validate_consecutive_ordered_characters(password) else False
 
         # Characterset restrictions
-        True if self.validate_characters(password) else False
+        return True if self.validate_characters(password) else False
 
         # Position restrictions
-        True if self.validate_position_restrictions(password) else False
+        return True if self.validate_position_restrictions(password) else False
 
         # Requirement groups
-        True if self.validate_requirement_groups(password) else False
+        return True if self.validate_requirement_groups(password) else False
 
         return True
 

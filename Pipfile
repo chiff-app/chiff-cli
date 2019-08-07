@@ -10,6 +10,7 @@ pynacl = {git = "https://github.com/bas-d/pynacl.git"}
 requests = "*"
 pykeepass = "*"
 tldextract = "*"
+click = "*"
 
 [requires]
 python_version = "3.6"

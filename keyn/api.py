@@ -1,6 +1,6 @@
 import requests, json
 import time
-import crypto
+from keyn import crypto
 
 API_URL = "https://api.keyn.app/dev/backup"
 PPD_URL = "https://api.keyn.app/dev/ppd"
