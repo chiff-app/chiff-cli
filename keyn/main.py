@@ -2,22 +2,24 @@ from keyn import api, crypto
 import json
 import csv
 import getpass
-import time
 import click
+import sys
 from keyn.password_generator import PasswordGenerator
 from pykeepass import PyKeePass
 
 
 @click.group()
 def main():
-    pass
+    click.echo("Welcome to the Keyn CLI! You can use this program to create, update and delete Keyn seeds and the "
+               "accounts on it.")
 
 
 @main.command()
 def generate():
     mnemonic = crypto.mnemonic(create_seed())
-    click.echo("The seed has been generated. Please write it down and store it in a safe place:")
+    click.echo("The seed has been generated:\n")
     click.echo(" ".join(mnemonic))
+    click.echo("\nPlease write it down and store it in a safe place.")
 
 
 @main.command(name='recover')
@@ -29,12 +31,14 @@ def generate():
 @click.option('-p', '--path', type=click.Path(writable=True, allow_dash=True),
               help='The path to where the file should be written to.')
 def export_accounts(mnemonic, format, path):
+    click.echo("Starting account export...")
     seed = crypto.recover(mnemonic)
     password_key, signing_keypair, decryption_key = crypto.derive_keys_from_seed(seed)
     encrypted_accounts_data = api.get_backup_data(signing_keypair)
 
     if not encrypted_accounts_data.items():
-        raise Exception("Seed does not exist")
+        click.echo("This seed does not exist.")
+        sys.exit(1)
 
     accounts = decrypt_accounts(encrypted_accounts_data.items(), password_key, decryption_key)
 
@@ -70,16 +74,16 @@ def export_accounts(mnemonic, format, path):
 @click.option('-m', '--mnemonic', nargs=12, help='The 12-word mnemonic')
 @click.option('-f', '--format', type=click.Choice(['csv', 'json', 'kdbx']),
               help='The input format. If data is written to a .kdbx database, the path to an existing '
-                   '.kdbx database file needs to be provided with -p.')
+                   '.kdbx database file needs to be provided with -p.', required=True)
 @click.option('-p', '--path', type=click.Path(writable=True, allow_dash=True),
-              help='The path to where the file should be read from.')
+              help='The path to where the file should be read from.', required=True)
 def import_accounts(mnemonic, format, path):
-    print(mnemonic)
     if mnemonic:
         seed = crypto.recover(mnemonic)
     else:
         seed = select_seed()
-    return
+
+    click.echo("Starting account recovery...")
     password_key, signing_keypair, encryption_key = crypto.derive_keys_from_seed(seed)
 
     if format == "csv":
@@ -112,6 +116,7 @@ def import_accounts(mnemonic, format, path):
               hide_input=True)
 @click.confirmation_option(prompt='Are you sure you want to delete this seed and all its associated accounts?')
 def delete_accounts(mnemonic):
+    click.echo("Deleting seed...")
     _, signing_keypair, _ = crypto.derive_keys_from_seed(crypto.recover(mnemonic))
     api.delete_seed(signing_keypair)
     click.echo("The seed was successfully deleted.")
@@ -144,7 +149,8 @@ def pick_account(seed):
     encrypted_accounts_data = api.get_backup_data(signing_keypair)
 
     if not encrypted_accounts_data.items():
-        raise Exception("Seed does not exist")
+        click.echo("This seed does not exist. Exiting..")
+        sys.exit(1)
 
     accounts = decrypt_accounts(encrypted_accounts_data.items(), password_key, decryption_key)
 
@@ -223,7 +229,7 @@ def obtain_mnemonic():
 
 def select_seed():
     selection = click.prompt('''
-Mnemonic not provided. What do you want to do?
+The mnemonic was not provided. What do you want to do?
 
 [1] Generate a new seed
 [2] Enter an existing mnemonic
@@ -233,7 +239,6 @@ Answer''', type=click.Choice(['1', '2']), show_choices=False)
         return create_seed()
     else:
         return obtain_mnemonic()
-
 
 
 if __name__ == '__main__':

@@ -16,6 +16,7 @@ PASSWORD_CONTEXT = "keynpass"
 PASSWORD_KEY_INDEX = 0
 BACKUP_KEY_INDEX = 1
 
+
 def random_example_seed():
     with open('wordlist.txt') as wordfile:
         words = wordfile.read().splitlines()
@@ -39,7 +40,7 @@ def mnemonic(seed):
 def recover(mnemonic):
     with open('wordlist.txt') as wordfile:
         words = wordfile.read().splitlines()
-        bitstring = reduce((lambda x, y: x + y), map(lambda x: bin(words.index(x))[2:].zfill(11), mnemonic))
+        bitstring = reduce((lambda x, y: x + y), map(lambda x: bin(words.index(x.strip()))[2:].zfill(11), mnemonic))
         checksum = bitstring[-4:]
         bitstring = bitstring[:-4]
         seed = bytes(map(lambda x: int(x, 2), [bitstring[start:start + 8] for start in range(0, len(bitstring), 8)]))

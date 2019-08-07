@@ -7,6 +7,7 @@ OPTIMAL_CHARACTER_SET = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ098
 MAXIMAL_CHARACTER_SET = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_" \
                         "`abcdefghijklmnopqrstuvwxyz{|}~"
 
+
 class PasswordValidator:
 
     def __init__(self, ppd):
@@ -22,28 +23,36 @@ class PasswordValidator:
 
     def validate(self, password):
         # Checks if password is less than or equal to maximum length. Relevant for custom passwords.
-        return True if self.validate_max_length(password) else False
+        if not self.validate_max_length(password):
+            return False
 
         # Checks is password is less than or equal to minimum length. Relevant for custom passwords.
-        return True if self.validate_min_length(password) else False
+        if not self.validate_min_length(password):
+            return False
 
         # Checks if password doesn't contain unallowed characters
-        return True if self.validate_characters(password) else False
+        if not self.validate_characters(password):
+            return False
 
         # Max consecutive characters. This tests if n characteres are the same
-        return True if self.validate_consecutive_characters(password) else False
+        if not self.validate_consecutive_characters(password):
+            return False
 
         # Max consecutive characters. This tests if n characters are an ordered sequence.
-        return True if self.validate_consecutive_ordered_characters(password) else False
+        if not self.validate_consecutive_ordered_characters(password):
+            return False
 
         # Characterset restrictions
-        return True if self.validate_characters(password) else False
+        if not self.validate_characters(password):
+            return False
 
         # Position restrictions
-        return True if self.validate_position_restrictions(password) else False
+        if not self.validate_position_restrictions(password):
+            return False
 
         # Requirement groups
-        return True if self.validate_requirement_groups(password) else False
+        if not self.validate_requirement_groups(password):
+            return False
 
         return True
 
@@ -112,26 +121,6 @@ class PasswordValidator:
         else:
             return True
 
-    def check_consecutive_characters(self, password, characters, max_consecutive):
-        escaped_chars = re.escape(characters)
-        return re.search(r"([%s])\\1{%d,}" % (escaped_chars, max_consecutive), password) is None
-
-    def check_consecutive_characters_order(self, password, characters, max_consecutive):
-        last_value = 255
-        longest_sequence = 0
-        counter = 1
-        character_bytes = characters.encode("utf-8")
-        for value in password.encode("utf-8"):
-            int_value = int.from_bytes(value, byteorder="big")
-            if int_value == last_value + 1 and value in character_bytes:
-                counter += 1
-            else:
-                counter = 1
-            if counter > longest_sequence:
-                longest_sequence = counter
-
-        return longest_sequence <= max_consecutive
-
     def check_character_set_settings(self, password, character_set_settings):
         for character_set_setting in character_set_settings:
             if character_set_setting["name"] in self.character_sets:
@@ -165,7 +154,7 @@ class PasswordValidator:
                     else:
                         occurrences += self.count_character_occurrences(password, self.character_sets[requirement_rule["characterSet"]])
                 if "maxOccurs" in requirement_rule:
-                    if occurrences >= requirement_rule["minOccurs"] and occurrences <= requirement_rule["maxOccurs"]:
+                    if requirement_rule["minOccurs"] <= occurrences <= requirement_rule["maxOccurs"]:
                         valid_rules += 1
                     elif occurrences >= requirement_rule["minOccurs"]:
                         valid_rules += 1
@@ -174,7 +163,30 @@ class PasswordValidator:
 
         return True
 
-    def check_positions(self, password, positions, character_set):
+    @staticmethod
+    def check_consecutive_characters(password, characters, max_consecutive):
+        escaped_chars = re.escape(characters)
+        return re.search(r"([%s])\\1{%d,}" % (escaped_chars, max_consecutive), password) is None
+
+    @staticmethod
+    def check_consecutive_characters_order(password, characters, max_consecutive):
+        last_value = 255
+        longest_sequence = 0
+        counter = 1
+        character_bytes = characters.encode("utf-8")
+        for value in password.encode("utf-8"):
+            int_value = int.from_bytes(value, byteorder="big")
+            if int_value == last_value + 1 and value in character_bytes:
+                counter += 1
+            else:
+                counter = 1
+            if counter > longest_sequence:
+                longest_sequence = counter
+
+        return longest_sequence <= max_consecutive
+
+    @staticmethod
+    def check_positions(password, positions, character_set):
         result = 0
         for position in positions.split(','):
             position = int(position)
@@ -187,7 +199,8 @@ class PasswordValidator:
 
         return result
 
-    def count_character_occurrences(self, password, character_set):
+    @staticmethod
+    def count_character_occurrences(password, character_set):
         result = 0
         for char in password:
             if char in character_set:
