@@ -1,4 +1,3 @@
-import argparse
 from keyn import api, crypto
 import json
 import csv
@@ -12,33 +11,13 @@ from pykeepass import PyKeePass
 @click.group()
 def main():
     pass
-    # parser = argparse.ArgumentParser(prog='keyn', description='Generate, recover and modify Keyn backup data.')
-    # subparsers = parser.add_subparsers(help='The action you want to execute: generate / recover / import / delete')
-    # # delete
-    # parser_delete = subparsers.add_parser('delete')
-    # parser_delete.set_defaults(func=delete_accounts, name='delete')
-    # group = parser_delete.add_mutually_exclusive_group(required=True)
-    # parser_delete.add_argument("-m", dest="mnemonic", metavar=crypto.random_example_seed(), nargs=12, required=True,
-    #                            help="The 12-word mnemonic")
-    # group.add_argument("-i", "--id",
-    #                            help="The account id of the account that should be deleted")
-    # group.add_argument("--delete-seed", dest="delete_seed", action="store_true",
-    #                    help="Delete the backup data for this seed")
 
 
 @main.command()
 def generate():
     mnemonic = crypto.mnemonic(create_seed())
-    print("The seed has been generated. Please write it down and store it in a safe place:")
-    print(" ".join(mnemonic))
-
-
-def create_seed():
-    seed = crypto.generate_seed()
-    _, signing_keypair, _ = crypto.derive_keys_from_seed(seed)
-    api.create_backup_data(signing_keypair)
-
-    return seed
+    click.echo("The seed has been generated. Please write it down and store it in a safe place:")
+    click.echo(" ".join(mnemonic))
 
 
 @main.command(name='recover')
@@ -46,36 +25,18 @@ def create_seed():
               hide_input=True)
 @click.option('-f', '--format', type=click.Choice(['csv', 'json', 'kdbx']),
               help='The output format. If data is written to a .kdbx database, '
-                    'the path to an existing .kdbx database file needs to be provided with -p.')
+                   'the path to an existing .kdbx database file needs to be provided with -p.')
 @click.option('-p', '--path', type=click.Path(writable=True, allow_dash=True),
               help='The path to where the file should be written to.')
 def export_accounts(mnemonic, format, path):
-    if mnemonic is None:
-        seed = obtain_mnemonic()
-    else:
-        seed = crypto.recover(mnemonic)
+    seed = crypto.recover(mnemonic)
     password_key, signing_keypair, decryption_key = crypto.derive_keys_from_seed(seed)
     encrypted_accounts_data = api.get_backup_data(signing_keypair)
-    accounts = []
 
     if not encrypted_accounts_data.items():
         raise Exception("Seed does not exist")
 
-    # Recovers the backup data from the server and decrypts it
-    for id, encrypted_account in encrypted_accounts_data.items():
-        decrypted_account_byte = crypto.decrypt(encrypted_account, decryption_key)
-        decrypted_account_string = decrypted_account_byte.decode('utf-8')
-        decrypted_account = json.loads(decrypted_account_string)
-
-        username = decrypted_account["username"]
-        site = decrypted_account["sites"][0]
-        offset = decrypted_account["passwordOffset"] if "passwordOffset" in decrypted_account else None
-        ppd = site["ppd"] if "ppd" in site else None
-
-        generator = PasswordGenerator(username, site["id"], password_key, ppd)
-        password, index = generator.generate(decrypted_account["passwordIndex"], offset)
-        accounts.append({"id": id, "username": username, "password": password, "url": site["url"],
-                         "site_name": site["name"]})
+    accounts = decrypt_accounts(encrypted_accounts_data.items(), password_key, decryption_key)
 
     # Exports the account data
     if format == "csv":
@@ -95,23 +56,32 @@ def export_accounts(mnemonic, format, path):
                              account["url"])
             kp.save(path)
     else:
-        print_accounts(accounts)
+        for account in accounts:
+            click.echo("-------------------------")
+            click.echo("Id:\t\t%s" % account["id"])
+            click.echo("Username:\t%s" % account["username"])
+            click.echo("Password:\t%s" % account["password"])
+            click.echo("Site:\t\t%s" % account["site_name"])
+            click.echo("URL:\t\t%s" % account["url"])
+        click.echo("-------------------------")
 
 
 @main.command(name='import')
-@click.option('-m', '--mnemonic', nargs=12, help='The 12-word mnemonic', prompt="Please enter the mnemonic: ",
-              hide_input=True)
+@click.option('-m', '--mnemonic', nargs=12, help='The 12-word mnemonic')
 @click.option('-f', '--format', type=click.Choice(['csv', 'json', 'kdbx']),
               help='The input format. If data is written to a .kdbx database, the path to an existing '
                    '.kdbx database file needs to be provided with -p.')
 @click.option('-p', '--path', type=click.Path(writable=True, allow_dash=True),
               help='The path to where the file should be read from.')
 def import_accounts(mnemonic, format, path):
-    if mnemonic is None:
-        seed = select_seed()
-    else:
+    print(mnemonic)
+    if mnemonic:
         seed = crypto.recover(mnemonic)
+    else:
+        seed = select_seed()
+    return
     password_key, signing_keypair, encryption_key = crypto.derive_keys_from_seed(seed)
+
     if format == "csv":
         with open(path, mode='r') as file:
             accounts = csv.DictReader(file, fieldnames=["url", "username", "password", "site_name"])
@@ -131,9 +101,10 @@ def import_accounts(mnemonic, format, path):
             for account in kp.entries:
                 upload_account_data(account.url, account.username, account.password,
                                     account.title, password_key, signing_keypair, encryption_key)
-    print("Your accounts have been uploaded")
-    print("Please write down your mnemonic: %s" % (mnemonic if mnemonic is not None else " ".join(
-        crypto.mnemonic(seed))))
+
+    click.echo("Your accounts have been uploaded successfully!")
+    click.echo("Please write down your mnemonic: %s" % (mnemonic if mnemonic is not None
+                                                        else " ".join(crypto.mnemonic(seed))))
 
 
 @main.command(name='delete')
@@ -146,15 +117,34 @@ def delete_accounts(mnemonic):
     click.echo("The seed was successfully deleted.")
 
 
-def print_accounts(accounts):
-    for account in accounts:
-        print("-------------------------")
-        print("Id:\t\t%s" % account["id"])
-        print("Username:\t%s" % account["username"])
-        print("Password:\t%s" % account["password"])
-        print("Site:\t\t%s" % account["site_name"])
-        print("URL:\t\t%s" % account["url"])
-    print("-------------------------")
+def create_seed():
+    seed = crypto.generate_seed()
+    _, signing_keypair, _ = crypto.derive_keys_from_seed(seed)
+    api.create_backup_data(signing_keypair)
+
+    return seed
+
+
+def decrypt_accounts(encrypted_accounts, password_key, decryption_key):
+    accounts = []
+
+    # Recovers the backup data from the server and decrypts it
+    for id, encrypted_account in encrypted_accounts:
+        decrypted_account_byte = crypto.decrypt(encrypted_account, decryption_key)
+        decrypted_account_string = decrypted_account_byte.decode('utf-8')
+        decrypted_account = json.loads(decrypted_account_string)
+
+        username = decrypted_account["username"]
+        site = decrypted_account["sites"][0]
+        offset = decrypted_account["passwordOffset"] if "passwordOffset" in decrypted_account else None
+        ppd = site["ppd"] if "ppd" in site else None
+
+        generator = PasswordGenerator(username, site["id"], password_key, ppd)
+        password, index = generator.generate(decrypted_account["passwordIndex"], offset)
+        accounts.append({"id": id, "username": username, "password": password, "url": site["url"],
+                         "site_name": site["name"]})
+
+    return accounts
 
 
 def upload_account_data(url, username, password, site_name, password_key, signing_keypair, encryption_key):
@@ -182,34 +172,29 @@ def upload_account_data(url, username, password, site_name, password_key, signin
 
 
 def obtain_mnemonic():
-    print("Please enter the twelve word mnemonic")
-    mnemonic = getpass.getpass(prompt="mnemonic:")
+    mnemonic = click.prompt("Please enter the twelve word mnemonic")
     try:
         words = mnemonic.split(" ")
         if len(words) != 12:
             raise Exception("the mnemonic should consist of 12 words")
-        return crypto.recover(words)
-    except Exception as exception:
-        print("An error occurred: %s\n" % exception.args)
-        time.sleep(1)
+    except Exception as exception
+        print("\nError: %s\n" % exception.args)
         return obtain_mnemonic()
-    else:
-        print("it works!")
 
 
 def select_seed():
-    print("Mnemonic not provided. Please select one of the following options:\n"
-          "(1) Generate a new seed\n"
-          "(2) Insert the mnemonic manually")
-    selection = input("Option: ")
+    selection = click.prompt('''
+Mnemonic not provided. What do you want to do?
+
+[1] Generate a new seed
+[2] Enter an existing mnemonic
+
+Answer''', type=click.Choice(['1', '2']), show_choices=False)
     if selection == '1':
         return create_seed()
-    elif selection == '2':
-        return obtain_mnemonic()
     else:
-        print("Please select option 1 or 2\n")
-        time.sleep(1)
-        return select_seed()
+        return obtain_mnemonic()
+
 
 
 if __name__ == '__main__':

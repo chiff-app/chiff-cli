@@ -14,6 +14,6 @@ setup(
     ],
     entry_points='''
         [console_scripts]
-        main=keyn:generate
+        main=keyn:main
     '''
 )
