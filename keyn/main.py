@@ -110,11 +110,50 @@ def import_accounts(mnemonic, format, path):
 @main.command(name='delete')
 @click.option('-m', '--mnemonic', nargs=12, help='The 12-word mnemonic', prompt="Please enter the mnemonic: ",
               hide_input=True)
-@click.confirmation_option(prompt='Are you sure you want to delete this seed and all its accounts?')
+@click.confirmation_option(prompt='Are you sure you want to delete this seed and all its associated accounts?')
 def delete_accounts(mnemonic):
     _, signing_keypair, _ = crypto.derive_keys_from_seed(crypto.recover(mnemonic))
     api.delete_seed(signing_keypair)
     click.echo("The seed was successfully deleted.")
+
+@main.group()
+def accounts():
+    pass
+
+
+@accounts.command(name='edit')
+@click.option('-m', '--mnemonic', nargs=12, help='The 12-word mnemonic', prompt="Please enter the mnemonic: ",
+              hide_input=True)
+@click.option('-id', help='The id of the account you want to edit / delete.')
+def edit_account(mnemonic, id):
+    print("account.edit_account function called")
+    if not id:
+        seed = crypto.recover(mnemonic)
+        account = pick_account(seed)
+    print(account)
+
+
+@accounts.command(name='delete')
+def delete_account():
+    print("account.delete_account function called")
+    #
+
+
+def pick_account(seed):
+    password_key, signing_keypair, decryption_key = crypto.derive_keys_from_seed(seed)
+    encrypted_accounts_data = api.get_backup_data(signing_keypair)
+
+    if not encrypted_accounts_data.items():
+        raise Exception("Seed does not exist")
+
+    accounts = decrypt_accounts(encrypted_accounts_data.items(), password_key, decryption_key)
+
+    click.echo("Which account do you want to edit?")
+    for i, account in enumerate(accounts, start=1):
+        click.echo("[%d]: %s" % (i, account["site_name"]))
+    choices = list(map(lambda x: "%d" % x, range(1, len(accounts) + 1)))
+    selection = click.prompt('Answer', type=click.Choice(choices), show_choices=False)
+    return accounts[int(selection) - 1]
 
 
 def create_seed():
@@ -177,7 +216,7 @@ def obtain_mnemonic():
         words = mnemonic.split(" ")
         if len(words) != 12:
             raise Exception("the mnemonic should consist of 12 words")
-    except Exception as exception
+    except Exception as exception:
         print("\nError: %s\n" % exception.args)
         return obtain_mnemonic()
 
