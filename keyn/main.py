@@ -128,6 +128,24 @@ def account():
     pass
 
 
+@account.command(name='create')
+@click.option('-m', '--mnemonic', nargs=12, help='The 12-word mnemonic')
+def create_account(mnemonic):
+    if mnemonic:
+        seed = crypto.recover(mnemonic)
+    else:
+        seed = crypto.recover(obtain_mnemonic())
+    username = click.prompt('Enter a new username', default="", show_default=False)
+    password = click.prompt('Enter a new password', default="", show_default=False, confirmation_prompt=True)
+    site_name = click.prompt('Enter a new site name', default="", show_default=False)
+    url = click.prompt('Enter a new URL', default="", show_default=False)
+    password_key, signing_keypair, decryption_key = crypto.derive_keys_from_seed(seed)
+    upload_account_data(url, username, password, site_name, password_key,
+                        signing_keypair, decryption_key)
+    #loading bar here
+    print("Account succesfully updated!")
+
+
 @account.command(name='edit')
 @click.option('-m', '--mnemonic', nargs=12, help='The 12-word mnemonic')
 @click.option('-id', help='The id of the account you want to edit.')
