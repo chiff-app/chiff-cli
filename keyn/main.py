@@ -103,7 +103,7 @@ def import_accounts(mnemonic, format, path):
         with open(path, mode='r') as file:
             accounts = csv.DictReader(file, fieldnames=["url", "username", "password", "site_name"])
             next(accounts, None)
-            with click.progressbar(accounts) as bar:
+            with click.progressbar(list(accounts)) as bar:
                 for account in bar:
                     upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
                                         password_key, signing_keypair, encryption_key)
