@@ -4,7 +4,6 @@ import csv
 import getpass
 import click
 import sys
-from time import sleep
 from keyn.password_generator import PasswordGenerator
 from pykeepass import PyKeePass
 
@@ -21,14 +20,6 @@ def generate():
     click.echo("The seed has been generated:\n")
     click.echo(" ".join(mnemonic))
     click.echo("\nPlease write it down and store it in a safe place.")
-
-
-@main.command(name='loading')
-def load():
-    array = ['fa', 'sfa', 'asd', 'asd', 'asfa', 'saad', 'asdafs', 'asdfa']
-    with click.progressbar(array) as bar:
-        for item in bar:
-            pass
 
 
 @main.command(name='recover')
@@ -58,9 +49,8 @@ def export_accounts(mnemonic, format, path):
         with open(path, mode='w') as file:
             csv_writer = csv.writer(file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
             csv_writer.writerow(['url', 'username', 'password', 'site_name'])
-            with click.progressbar(accounts, length=len(accounts), label="Exporting accounts") as bar:
-                for account in accounts:
-                    csv_writer.writerow([account["url"], account["username"], account["password"], account["site_name"]])
+            for account in accounts:
+                csv_writer.writerow([account["url"], account["username"], account["password"], account["site_name"]])
     elif format == "json":
         with open(path, mode='w') as file:
             json.dump(accounts, file, indent=4)
@@ -103,23 +93,26 @@ def import_accounts(mnemonic, format, path):
         with open(path, mode='r') as file:
             accounts = csv.DictReader(file, fieldnames=["url", "username", "password", "site_name"])
             next(accounts, None)
-            with click.progressbar(list(accounts)) as bar:
-                for account in bar:
+            with click.progressbar(list(accounts)) as accounts:
+                for account in accounts:
                     upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
                                         password_key, signing_keypair, encryption_key)
     elif format == "json":
         with open(path, mode='r') as file:
-            for account in json.load(file):
-                upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
-                                    password_key, signing_keypair, encryption_key)
+            with click.progressbar(json.load(file)) as accounts:
+                for account in accounts:
+                    upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
+                                        password_key, signing_keypair, encryption_key)
     elif format == "kdbx":
         password = getpass.getpass(prompt='Please provide your .kdbx database password: ')
-        with PyKeePass(path.name, password=password) as kp:
-            for account in kp.entries:
-                upload_account_data(account.url, account.username, account.password,
-                                    account.title, password_key, signing_keypair, encryption_key)
+        with PyKeePass(path, password=password) as kp:
+            with click.progressbar(kp.entries) as accounts:
+                for account in accounts:
+                    upload_account_data(account.url, account.username, account.password,
+                                        account.title, password_key, signing_keypair, encryption_key)
     click.echo("Your accounts have been uploaded successfully!")
-    click.echo("Please write down your mnemonic: %s" % " ".join(crypto.mnemonic(seed)))
+    if not mnemonic:
+        click.echo("Please write down your mnemonic: %s" % " ".join(crypto.mnemonic(seed)))
 
 
 @main.command(name='delete')
@@ -152,7 +145,6 @@ def create_account(mnemonic):
     password_key, signing_keypair, decryption_key = crypto.derive_keys_from_seed(seed)
     upload_account_data(url, username, password, site_name, password_key,
                         signing_keypair, decryption_key)
-    #loading bar here
     print("Account succesfully updated!")
 
 
