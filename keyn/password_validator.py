@@ -12,12 +12,13 @@ class PasswordValidator:
 
     def __init__(self, ppd):
         self.ppd = ppd
-        self.character_sets = {}
+        self.character_set_dictionary = {}
         self.characters = ""
         if self.ppd is not None and "characterSets" in self.ppd:
             for character_set in self.ppd["characterSets"]:
-                self.character_sets[character_set["name"]] = character_set["characters"]
-                self.characters += character_set["characters"]
+                if character_set.get("characters") is not None:
+                    self.characters += character_set["characters"]
+                self.character_set_dictionary[character_set["name"]] = character_set["characters"]
         else:
             self.characters = OPTIMAL_CHARACTER_SET
 
@@ -43,7 +44,7 @@ class PasswordValidator:
             return False
 
         # Characterset restrictions
-        if not self.validate_characters(password):
+        if not self.validate_character_set(password):
             return False
 
         # Position restrictions
@@ -57,16 +58,18 @@ class PasswordValidator:
         return True
 
     def validate_max_length(self, password):
-        if self.ppd is not None and "properties" in self.ppd and "maxLength" in self.ppd["properties"]:
-            max_length = self.ppd["properties"]["maxLength"]
+        if self.ppd is not None and self.ppd.get("properties") is not None \
+                and self.ppd.get("properties").get("maxLength") is not None:
+            max_length = self.ppd.get("properties").get("maxLength")
         else:
             max_length = MAX_PASSWORD_LENGTH_BOUND
 
         return len(password) <= max_length
 
     def validate_min_length(self, password):
-        if self.ppd is not None and "properties" in self.ppd and "minLength" in self.ppd["properties"]:
-            min_length = self.ppd["properties"]["minLength"]
+        if self.ppd is not None and self.ppd.get("properties") is not None \
+                and self.ppd.get("properties").get("minLength") is not None:
+            min_length = self.ppd.get("properties").get("minLength")
         else:
             min_length = MIN_PASSWORD_LENGTH_BOUND
 
@@ -80,17 +83,18 @@ class PasswordValidator:
         return True
 
     def validate_consecutive_characters(self, password):
-        if self.ppd is not None and "properties" in self.ppd and "maxConsecutive" in self.ppd["properties"]:
-            if self.ppd["properties"]["maxConsecutive"] > 0:
-                return self.check_consecutive_characters(password, self.characters, self.ppd["properties"]["maxConsecutive"])
+        if self.ppd is not None and self.ppd.get("properties") is not None and \
+                self.ppd.get("properties").get("maxConsecutive") is not None:
+            if self.ppd.get("properties").get("maxConsecutive") > 0:
+                return self.check_consecutive_characters(password, self.characters, self.ppd.get("properties").get("maxConsecutive"))
             else:
                 return True
         else:
             return True
 
     def validate_consecutive_ordered_characters(self, password):
-        if self.ppd is not None and "properties" in self.ppd and "maxConsecutive" in self.ppd["properties"]:
-            if self.ppd["properties"]["maxConsecutive"] > 0:
+        if self.ppd.get("properties").get("maxConsecutive") is not None:
+            if self.ppd.get("properties").get("maxConsecutive") > 0:
                 return False
             else:
                 return True
@@ -98,47 +102,48 @@ class PasswordValidator:
             return True
 
     def validate_character_set(self, password):
-        if self.ppd is not None and "properties" in self.ppd \
-                and "characterSettings" in self.ppd["properties"] \
-                and "characterSetSettings" in self.ppd["properties"]["characterSettings"]:
-            return self.check_character_set_settings(password, self.ppd["properties"]["characterSettings"]["characterSetSettings"])
+        if self.ppd is not None and self.ppd.get("properties") is not None \
+                and self.ppd.get("properties").get("characterSettings") is not None \
+                and self.ppd.get("properties").get("characterSettings").get("characterSetSettings") is not None:
+            return self.check_character_set_settings(password, self.ppd.get("properties").get("characterSettings").get("characterSetSettings"))
         else:
             return True
 
     def validate_position_restrictions(self, password):
-        if self.ppd is not None and "properties" in self.ppd \
-                and "characterSettings" in self.ppd["properties"] \
-                and "positionRestrictions" in self.ppd["properties"]["characterSettings"]:
-            return self.check_requirement_groups(password, self.ppd["properties"]["characterSettings"]["positionRestrictions"])
+        if self.ppd is not None and self.ppd.get("properties") is not None \
+                and self.ppd.get("properties").get("characterSettings") is not None \
+                and self.ppd.get("properties").get("characterSettings").get("positionRestrictions") is not None:
+            return self.check_position_restrictions(password, self.ppd.get("properties").get("characterSettings").get("positionRestrictions"))
         else:
             return True
 
     def validate_requirement_groups(self, password):
-        if self.ppd is not None and "properties" in self.ppd \
-                and "characterSettings" in self.ppd["properties"] \
-                and "requirementGroups" in self.ppd["properties"]["characterSettings"]:
-            return self.check_requirement_groups(password, self.ppd["properties"]["characterSettings"]["requirementGroups"])
+        if self.ppd is not None and self.ppd.get("properties") is not None \
+                and self.ppd.get("properties").get("characterSettings") \
+                and self.ppd.get("properties").get("characterSettings").get("requirementGroups"):
+            return self.check_requirement_groups(password, self.ppd.get("properties").get("characterSettings").get("requirementGroups"))
         else:
             return True
 
     def check_character_set_settings(self, password, character_set_settings):
         for character_set_setting in character_set_settings:
-            if character_set_setting["name"] in self.character_sets:
-                occurrences = self.count_character_occurences(password, self.character_set)
-                if "minOccurs" in character_set_setting and occurrences < character_set_setting["minOccurs"]:
+            if self.character_set_dictionary.get(character_set_setting["name"]) is not None:
+                character_set = self.character_set_dictionary[character_set_setting["name"]]
+                occurrences = self.count_character_occurrences(password, character_set)
+                if character_set_setting.get("minOccurs") is not None and occurrences < character_set_setting["minOccurs"]:
                     return False
-                if "maxOccurs" in character_set_setting and occurrences < character_set_setting["minOccurs"]:
+                if character_set_setting.get("maxOccurs") is not None and occurrences > character_set_setting["maxOccurs"]:
                     return False
-
         return True
 
     def check_position_restrictions(self, password, position_restrictions):
         for position_restriction in position_restrictions:
-            if self.character_sets[position_restriction["characterSet"]] is not None:
-                occurrences = self.check_positions(password, position_restriction["positions"], self.character_set)
-                if occurrences < position_restriction["minOccurs"]:
+            if self.character_set_dictionary.get(position_restriction.get("characterSet")) is not None:
+                character_set = self.character_set_dictionary.get(position_restriction.get("characterSet"))
+                occurrences = self.check_positions(password, position_restriction.get("positions"), character_set)
+                if occurrences is not None and occurrences < position_restriction["minOccurs"]:
                     return False
-                if occurrences["maxOccurs"] is not None and occurrences > position_restriction["maxOccurs"]:
+                if occurrences is not None and occurrences > position_restriction["maxOccurs"]:
                     return False
 
         return True
@@ -146,21 +151,27 @@ class PasswordValidator:
     def check_requirement_groups(self, password, requirement_groups):
         for requirement_group in requirement_groups:
             valid_rules = 0
-            for requirement_rule in requirement_group["requirementRules"]:
+            for requirement_rule in requirement_group.get("requirementRules"):
                 occurrences = 0
-                if requirement_rule["characterSet"] in self.character_sets:
-                    if "positions" in requirement_rule:
-                        occurrences += self.check_positions(password, requirement_rule["characterSet"], self.character_sets[requirement_rule["characterSet"]])
+                if self.character_set_dictionary.get(requirement_rule.get("characterSet")) is not None:
+                    if requirement_rule.get("positions") is not None:
+                        occurrences += self.check_positions(password, requirement_rule.get("positions"),
+                                            self.character_set_dictionary.get(requirement_rule.get("characterSet")))
                     else:
-                        occurrences += self.count_character_occurrences(password, self.character_sets[requirement_rule["characterSet"]])
-                if "maxOccurs" in requirement_rule:
-                    if requirement_rule["minOccurs"] <= occurrences <= requirement_rule["maxOccurs"]:
+                        occurrences += self.count_character_occurrences(password,
+                                            self.character_set_dictionary.get(requirement_rule.get("characterSet")))
+                if requirement_rule.get("maxOccurs") is not None:
+                    if requirement_rule.get("minOccurs") <= occurrences <= requirement_rule.get("maxOccurs"):
+                        print('j')
                         valid_rules += 1
-                    elif occurrences >= requirement_rule["minOccurs"]:
+                else:
+                    if occurrences >= requirement_rule.get("minOccurs"):
+                        print('a')
                         valid_rules += 1
-            if valid_rules < requirement_group["minRules"]:
+                print(valid_rules)
+            print(valid_rules)
+            if valid_rules < requirement_group.get("minRules"):
                 return False
-
         return True
 
     @staticmethod
@@ -187,21 +198,19 @@ class PasswordValidator:
 
     @staticmethod
     def check_positions(password, positions, character_set):
-        result = 0
+        occurrences = 0
         for position in positions.split(','):
-            position = int(position)
-            if position < 0:
-                char = reversed(password[position["absoluteValue"]])
-            else:
-                password[position]
-            if char in character_set:
-                result += 1
+            if password[int(position)] in character_set:
+                occurrences += 1
 
-        return result
+        return occurrences
+
 
     @staticmethod
     def count_character_occurrences(password, character_set):
         result = 0
+        print(password)
+        print(character_set)
         for char in password:
             if char in character_set:
                 result += 1

@@ -27,7 +27,7 @@ class PasswordGenerator:
         if offset is None:
             validator = password_validator.PasswordValidator(self.ppd)
 
-            while not validator.validate(password):
+            while not validator.validate(password) and False:
                 index += 1
                 password = self.generate_password_candidate(index, length, offset)
 
@@ -60,13 +60,13 @@ class PasswordGenerator:
     def length(self, is_custom_password):
         length = password_validator.MAX_PASSWORD_LENGTH_BOUND if is_custom_password else password_validator.FALLBACK_PASSWORD_LENGTH
         chars = password_validator.MAXIMAL_CHARACTER_SET if is_custom_password else password_validator.OPTIMAL_CHARACTER_SET
-        if self.ppd is not None and "properties" in self.ppd and "maxLength" in self.ppd["properties"]:
+        if self.ppd is not None and "properties" in self.ppd and "maxLength" in self.ppd["properties"] and \
+                self.ppd["properties"]["maxLength"] is not None:
             max_length = self.ppd["properties"]["maxLength"]
             if max_length < password_validator.MAX_PASSWORD_LENGTH_BOUND:
                 length = min(max_length, password_validator.MAX_PASSWORD_LENGTH_BOUND)
             else:
                 length = math.ceil(128 / math.log2(len(chars)))
-
         return length
 
     def generate_password_candidate(self, index, length, offset):
@@ -85,7 +85,7 @@ class PasswordGenerator:
             if index < len(chars):
                 password += chars[index]
 
-        return password
+        return password, index
 
     @staticmethod
     def round_up(n, m):

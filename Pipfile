@@ -11,6 +11,7 @@ requests = "*"
 pykeepass = "*"
 tldextract = "*"
 click = "*"
+importlib-resources = "*"
 
 [requires]
 python_version = ">=3"
