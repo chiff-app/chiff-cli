@@ -5,6 +5,7 @@ import sys
 
 import click
 from pykeepass import PyKeePass
+from construct import ChecksumError
 
 from keyn import api, crypto
 from keyn.password_generator import PasswordGenerator
@@ -58,11 +59,15 @@ def export_accounts(mnemonic, format, path):
             json.dump(accounts, file, indent=4)
     elif format == "kdbx":
         password = getpass.getpass(prompt='Please provide your .kdbx database password: ')
-        with PyKeePass(path, password=password) as kp:
-            for account in accounts:
-                kp.add_entry(kp.root_group, account["site_name"], account["username"], account["password"],
-                             account["url"], "Imported from Keyn")
-            kp.save(path)
+        try:
+            with PyKeePass(path, password=password) as kp:
+                for account in accounts:
+                    kp.add_entry(kp.root_group, account["site_name"], account["username"], account["password"],
+                                 account["url"], "Imported from Keyn")
+                kp.save(path)
+        except ChecksumError:
+            print("The keepass password appears to be incorrect. Exiting")
+            exit(1)
     else:
         for account in accounts:
             click.echo("-------------------------")
@@ -107,11 +112,16 @@ def import_accounts(mnemonic, format, path):
                                         password_key, signing_keypair, encryption_key)
     elif format == "kdbx":
         password = getpass.getpass(prompt='Please provide your .kdbx database password: ')
-        with PyKeePass(path, password=password) as kp:
-            with click.progressbar(kp.entries) as accounts:
-                for account in accounts:
-                    upload_account_data(account.url, account.username, account.password,
-                                        account.title, password_key, signing_keypair, encryption_key)
+        try:
+            with PyKeePass(path, password=password) as kp:
+                with click.progressbar(kp.entries) as accounts:
+                    for account in accounts:
+                        upload_account_data(account.url, account.username, account.password,
+                                            account.title, password_key, signing_keypair, encryption_key)
+        except ChecksumError:
+            print("The keepass password appears to be incorrect. Exiting")
+            exit(1)
+
     click.echo("Your accounts have been uploaded successfully!")
     if not mnemonic:
         click.echo("Please write down your mnemonic: %s" % " ".join(crypto.mnemonic(seed)))
