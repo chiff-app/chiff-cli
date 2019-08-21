@@ -4,7 +4,7 @@ from keyn import crypto
 from nacl.hash import sha256
 
 
-mnemonic = "blind pony swarm upper stomach amount fresh screen purse unhappy garbage ride"
+mnemonic = "wreck together kick tackle rely embrace enlist bright double happy group hope"
 base64seed = "_jx16O6LVpESsOBBrR2btg"
 linked_in_ppd_handle = "c53526a0b5fc33cb7d089d53a45a76044ed5f4aea170956d5799d01b2478cdfa"
 
@@ -52,6 +52,7 @@ def sample_ppd(min_length, max_length, max_consecutive=None, character_set_setti
     return ppd
 
 
-def create_seed():
+def derive_password_key():
     seed = crypto.recover(mnemonic.split(" "))
-    return seed
+    password_key, _, _ = crypto.derive_keys_from_seed(seed)
+    return password_key

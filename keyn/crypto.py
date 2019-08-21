@@ -95,7 +95,6 @@ def kdf_derive_from_key(data, index, context):
 
 
 def password_key(seed, site_id, index, username):
-    print(site_id)
     site_hash = sha256(site_id.encode("utf-8"), encoder=nacl.encoding.HexEncoder)[:8]
     username_hash = sha256(username.encode("utf-8"), encoder=nacl.encoding.HexEncoder)[:8]
     site_key = blake2b(b'', key=seed, salt=site_hash,

@@ -4,6 +4,7 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 
 [dev-packages]
+pytest = "*"
 
 [packages]
 pynacl = {git = "https://github.com/bas-d/pynacl.git"}
@@ -12,6 +13,3 @@ pykeepass = "*"
 tldextract = "*"
 click = "*"
 importlib-resources = "*"
-
-[requires]
-python_version = ">=3"
