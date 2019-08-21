@@ -72,7 +72,6 @@ class PasswordGenerator:
     def generate_password_candidate(self, index, length, offset):
         chars = password_validator.MAXIMAL_CHARACTER_SET if offset is not None else self.characters
         key = crypto.password_key(self.seed, self.site_id, index, self.username)
-        print(crypto.generic_hash(key))
         bit_length = length * math.ceil(math.log2(len(chars))) + (128 + length - (128 % length))  # number of bits in the pw
         byte_length = int(self.round_up(n=bit_length, m=(length*8)) / 8)
         key_data = crypto.deterministic_random_bytes(key, byte_length)

@@ -1,17 +1,18 @@
-from keyn import api, crypto
-import json
 import csv
 import getpass
-import click
+import json
 import sys
-from keyn.password_generator import PasswordGenerator
+
+import click
 from pykeepass import PyKeePass
+
+from keyn import api, crypto
+from keyn.password_generator import PasswordGenerator
 
 
 @click.group()
 def main():
-    click.echo("Welcome to the Keyn CLI! You can use this program to create, update and delete Keyn seeds and the "
-               "accounts on it.")
+    pass
 
 
 @main.command()
@@ -30,7 +31,8 @@ def generate():
 @click.option('-p', '--path', type=click.Path(writable=True, allow_dash=True),
               help='The path to where the file should be written to.')
 def export_accounts(mnemonic, format, path):
-    click.echo("Starting account export...")
+    if path is not "-":
+        click.echo("Starting account export...")
     if mnemonic:
         seed = crypto.recover(mnemonic)
     else:
@@ -46,13 +48,13 @@ def export_accounts(mnemonic, format, path):
     accounts = decrypt_accounts(encrypted_accounts_data.items(), password_key, decryption_key)
 
     if format == "csv":
-        with open(path, mode='w') as file:
+        with click.open_file(path, mode='w') as file:
             csv_writer = csv.writer(file, delimiter=',', quoting=csv.QUOTE_MINIMAL)
             csv_writer.writerow(['url', 'username', 'password', 'site_name'])
             for account in accounts:
                 csv_writer.writerow([account["url"], account["username"], account["password"], account["site_name"]])
     elif format == "json":
-        with open(path, mode='w') as file:
+        with click.open_file(path, mode='w') as file:
             json.dump(accounts, file, indent=4)
     elif format == "kdbx":
         password = getpass.getpass(prompt='Please provide your .kdbx database password: ')
@@ -90,7 +92,7 @@ def import_accounts(mnemonic, format, path):
     password_key, signing_keypair, encryption_key = crypto.derive_keys_from_seed(seed)
 
     if format == "csv":
-        with open(path, mode='r') as file:
+        with click.open_file(path, mode='r') as file:
             accounts = csv.DictReader(file, fieldnames=["url", "username", "password", "site_name"])
             next(accounts, None)
             with click.progressbar(list(accounts)) as accounts:
@@ -98,7 +100,7 @@ def import_accounts(mnemonic, format, path):
                     upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
                                         password_key, signing_keypair, encryption_key)
     elif format == "json":
-        with open(path, mode='r') as file:
+        with click.open_file(path, mode='r') as file:
             with click.progressbar(json.load(file)) as accounts:
                 for account in accounts:
                     upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
@@ -139,7 +141,8 @@ def create_account(mnemonic):
     else:
         seed = crypto.recover(obtain_mnemonic())
     username = click.prompt('Enter a new username', default="", show_default=False)
-    password = click.prompt('Enter a new password', default="", show_default=False, confirmation_prompt=True)
+    password = click.prompt('Enter a new password', default="", show_default=False,
+                            confirmation_prompt=True, hide_input=True)
     site_name = click.prompt('Enter a new site name', default="", show_default=False)
     url = click.prompt('Enter a new URL', default="", show_default=False)
     password_key, signing_keypair, decryption_key = crypto.derive_keys_from_seed(seed)
@@ -265,7 +268,7 @@ def decrypt_accounts(encrypted_accounts, password_key, decryption_key):
 
 
 def upload_account_data(url, username, password, site_name, password_key, signing_keypair, encryption_key,
-                        account_id = None, password_index = 0):
+                        account_id=None, password_index=0):
     site_id, secondary_site_id = crypto.get_site_ids(url)
     site_id = site_id.decode("utf-8")
     ppd = api.get_ppd(site_id)

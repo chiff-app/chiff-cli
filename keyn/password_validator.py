@@ -40,7 +40,7 @@ class PasswordValidator:
             return False
 
         # Max consecutive characters. This tests if n characters are an ordered sequence.
-        if not self.validate_consecutive_ordered_characters(password):
+        if not self.validate_consecutive_ordered_characters():
             return False
 
         # Characterset restrictions
@@ -92,7 +92,7 @@ class PasswordValidator:
         else:
             return True
 
-    def validate_consecutive_ordered_characters(self, password):
+    def validate_consecutive_ordered_characters(self):
         if self.ppd.get("properties").get("maxConsecutive") is not None:
             if self.ppd.get("properties").get("maxConsecutive") > 0:
                 return False

@@ -1,5 +1,8 @@
-import requests, json
 import time
+
+import json
+import requests
+
 from keyn import crypto
 
 API_URL = "https://api.keyn.app/dev/backup"
@@ -49,7 +52,8 @@ def delete_seed(keypair):
     url, params, headers = sign_request({
         "httpMethod": "DELETE"
     }, keypair)
-    return requests.delete("%s/all" % url, params=params, headers=headers).json()
+    return requests.delete("%s/all" % url,
+                           params=params, headers=headers).json()
 
 
 def get_ppd(id):
