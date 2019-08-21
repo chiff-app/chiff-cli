@@ -162,14 +162,10 @@ class PasswordValidator:
                                             self.character_set_dictionary.get(requirement_rule.get("characterSet")))
                 if requirement_rule.get("maxOccurs") is not None:
                     if requirement_rule.get("minOccurs") <= occurrences <= requirement_rule.get("maxOccurs"):
-                        print('j')
                         valid_rules += 1
                 else:
                     if occurrences >= requirement_rule.get("minOccurs"):
-                        print('a')
                         valid_rules += 1
-                print(valid_rules)
-            print(valid_rules)
             if valid_rules < requirement_group.get("minRules"):
                 return False
         return True
@@ -209,8 +205,6 @@ class PasswordValidator:
     @staticmethod
     def count_character_occurrences(password, character_set):
         result = 0
-        print(password)
-        print(character_set)
         for char in password:
             if char in character_set:
                 result += 1
