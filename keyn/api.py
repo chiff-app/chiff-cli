@@ -15,7 +15,11 @@ def get_backup_data(keypair):
 
 
 def create_backup_data(keypair):
-    url, params, headers = sign_request({"httpMethod": "PUT"}, keypair)
+    url, params, headers = sign_request({
+        "httpMethod": "PUT",
+        "userId": crypto.user_id(keypair),
+        "os": "cli"
+    }, keypair)
     return requests.put(url, params=params, headers=headers).json()
 
 

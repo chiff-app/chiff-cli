@@ -90,7 +90,7 @@ def sign(message, signing_key: nacl.signing.SigningKey):
 def encrypt(message, key: nacl.secret.SecretBox):
     return key.encrypt(message,
                        encoder=nacl.encoding.URLSafeBase64Encoder)\
-        .decode("utf-8").replace('=', '')
+        .decode("utf-8").rstrip("=")
 
 
 def decrypt(message, key: nacl.secret.SecretBox):
@@ -138,6 +138,11 @@ def deterministic_random_bytes(seed, size):
 def add_padding(string):
     padding = 4 - (len(string) % 4)
     return string + ("=" * padding)
+
+
+def user_id(key):
+    pubkey = key.verify_key.encode(encoder=nacl.encoding.URLSafeBase64Encoder).decode("utf-8").rstrip("=")
+    return sha256(pubkey.encode("utf-8"), encoder=nacl.encoding.HexEncoder).decode("utf-8")
 
 
 def get_site_ids(url):
