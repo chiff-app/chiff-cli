@@ -7,12 +7,21 @@ from keyn import password_validator, password_generator
 password_seed = test_helper.derive_password_key()
 
 
-def test_generate_password_should_return_password():
+def test_generate_password_should_return_password_v0():
+    ppd = test_helper.sample_ppd(8, 32)
+    password_generator_instance = password_generator.PasswordGenerator("test", test_helper.linked_in_ppd_handle, password_seed,
+                                                                       ppd, version=0)
+    password, index = password_generator_instance.generate(0, None)
+    assert "RMMbQu1QVLIAchpgm7!.<CcL9EM[KFJ(" == password, "String and password are not the same."
+    assert index == 0, "Index is not zero."
+
+
+def test_generate_password_should_return_password_v1():
     ppd = test_helper.sample_ppd(8, 32)
     password_generator_instance = password_generator.PasswordGenerator("test", test_helper.linked_in_ppd_handle, password_seed,
                                                                        ppd)
     password, index = password_generator_instance.generate(0, None)
-    assert "RMMbQu1QVLIAchpgm7!.<CcL9EM[KFJ(" == password, "String and password are not the same."
+    assert "}a`]mSI]TRsO@juAxH0YHgDCP<v~THow" == password, "String and password are not the same."
     assert index == 0, "Index is not zero."
 
 

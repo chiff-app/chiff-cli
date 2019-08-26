@@ -208,7 +208,7 @@ def edit_account(mnemonic, id):
         click.echo("URL updated!")
 
     upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
-                        password_key, signing_keypair, decryption_key, account["id"], account["index"])
+                        password_key, signing_keypair, decryption_key, account["id"], account["index"], account["version"])
 
 
 @account.command(name='delete')
@@ -268,17 +268,18 @@ def decrypt_accounts(encrypted_accounts, password_key, decryption_key):
         site = decrypted_account["sites"][0]
         offset = decrypted_account["passwordOffset"] if "passwordOffset" in decrypted_account else None
         ppd = site["ppd"] if "ppd" in site else None
-
-        generator = PasswordGenerator(username, site["id"], password_key, ppd)
+        version = decrypted_account["version"] if "version" in decrypted_account else 0
+        print(version)
+        generator = PasswordGenerator(username, site["id"], password_key, ppd, version)
         password, index = generator.generate(decrypted_account["passwordIndex"], offset)
         accounts.append({"id": id, "username": username, "password": password, "url": site["url"],
-                         "site_name": site["name"], "index": index})
+                         "site_name": site["name"], "index": index, "version": version})
 
     return accounts
 
 
 def upload_account_data(url, username, password, site_name, password_key, signing_keypair, encryption_key,
-                        account_id=None, password_index=0):
+                        account_id=None, password_index=0, version=1):
     site_id, secondary_site_id = crypto.get_site_ids(url)
     site_id = site_id.decode("utf-8")
     ppd = api.get_ppd(site_id)
@@ -298,6 +299,7 @@ def upload_account_data(url, username, password, site_name, password_key, signin
         'lastPasswordUpdateTryIndex': 0,
         'passwordOffset': offset,
         'enabled': False,
+        'version': version
     }
     ciphertext = crypto.encrypt(json.dumps(account).encode("utf-8"), encryption_key)
     api.set_backup_data(account_id, ciphertext, signing_keypair)

@@ -4,12 +4,13 @@ from keyn import password_validator, crypto
 
 class PasswordGenerator:
 
-    def __init__(self, username, site_id, seed, ppd):
+    def __init__(self, username, site_id, seed, ppd, version=1):
         self.username = username
         self.site_id = site_id
         self.seed = seed
         self.ppd = ppd
         self.characters = ""
+        self.version = version
         if ppd is not None and self.ppd.get("characterSets") is not None:
             for character_set in self.ppd.get("characterSets"):
                 self.characters += ''.join(sorted(character_set["characters"]))
@@ -41,7 +42,7 @@ class PasswordGenerator:
         if not validator.validate_max_length(password):
             raise ValueError("The password is too long.")
 
-        key = crypto.password_key(self.seed, self.site_id, index, self.username)
+        key = crypto.password_key(self.seed, self.site_id, index, self.username, self.version)
         bit_length = length * math.ceil(math.log2(len(chars))) + (128 + length - (128 % length))
         byte_length = int(self.round_up(n=bit_length, m=(length * 8)) / 8)
         bytes_per_char = int(byte_length / length)
@@ -71,7 +72,7 @@ class PasswordGenerator:
 
     def generate_password_candidate(self, index, length, offset):
         chars = password_validator.MAXIMAL_CHARACTER_SET if offset is not None else self.characters
-        key = crypto.password_key(self.seed, self.site_id, index, self.username)
+        key = crypto.password_key(self.seed, self.site_id, index, self.username, self.version)
         bit_length = length * math.ceil(math.log2(len(chars))) + (128 + length - (128 % length))  # number of bits in the pw
         byte_length = int(self.round_up(n=bit_length, m=(length*8)) / 8)
         key_data = crypto.deterministic_random_bytes(key, byte_length)

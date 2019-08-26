@@ -117,11 +117,11 @@ def kdf_derive_from_key(data, index, context):
                    encoder=nacl.encoding.RawEncoder)
 
 
-def password_key(seed, site_id, index, username):
+def password_key(seed, site_id, index, username, version):
     site_hash = sha256(site_id.encode("utf-8"),
-                       encoder=nacl.encoding.HexEncoder)[:8]
+                       encoder=nacl.encoding.HexEncoder if version == 0 else nacl.encoding.RawEncoder)[:8]
     username_hash = sha256(username.encode("utf-8"),
-                           encoder=nacl.encoding.HexEncoder)[:8]
+                           encoder=nacl.encoding.HexEncoder if version == 0 else nacl.encoding.URLSafeBase64Encoder)[:8]
     site_key = blake2b(b'', key=seed, salt=site_hash,
                        person=PASSWORD_CONTEXT.encode("utf-8"),
                        encoder=nacl.encoding.RawEncoder)
