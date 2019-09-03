@@ -269,7 +269,6 @@ def decrypt_accounts(encrypted_accounts, password_key, decryption_key):
         offset = decrypted_account["passwordOffset"] if "passwordOffset" in decrypted_account else None
         ppd = site["ppd"] if "ppd" in site else None
         version = decrypted_account["version"] if "version" in decrypted_account else 0
-        print(version)
         generator = PasswordGenerator(username, site["id"], password_key, ppd, version)
         password, index = generator.generate(decrypted_account["passwordIndex"], offset)
         accounts.append({"id": id, "username": username, "password": password, "url": site["url"],

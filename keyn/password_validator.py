@@ -40,7 +40,7 @@ class PasswordValidator:
             return False
 
         # Max consecutive characters. This tests if n characters are an ordered sequence.
-        if not self.validate_consecutive_ordered_characters():
+        if not self.validate_consecutive_ordered_characters(password):
             return False
 
         # Characterset restrictions
@@ -86,16 +86,20 @@ class PasswordValidator:
         if self.ppd is not None and self.ppd.get("properties") is not None and \
                 self.ppd.get("properties").get("maxConsecutive") is not None:
             if self.ppd.get("properties").get("maxConsecutive") > 0:
-                return self.check_consecutive_characters(password, self.characters, self.ppd.get("properties").get("maxConsecutive"))
+                return self.check_consecutive_characters(password,
+                                                         self.characters,
+                                                         self.ppd.get("properties").get("maxConsecutive"))
             else:
                 return True
         else:
             return True
 
-    def validate_consecutive_ordered_characters(self):
-        if self.ppd.get("properties").get("maxConsecutive") is not None:
+    def validate_consecutive_ordered_characters(self, password):
+        if self.ppd is not None and self.ppd.get("properties") is not None and \
+                self.ppd.get("properties").get("maxConsecutive") is not None:
             if self.ppd.get("properties").get("maxConsecutive") > 0:
-                return False
+                return self.check_consecutive_characters_order(password,
+                                                               self.ppd.get("properties").get("maxConsecutive"))
             else:
                 return True
         else:
@@ -173,20 +177,22 @@ class PasswordValidator:
     @staticmethod
     def check_consecutive_characters(password, characters, max_consecutive):
         escaped_chars = re.escape(characters)
-        return re.search(r"([%s])\\1{%d,}" % (escaped_chars, max_consecutive), password) is None
+        return re.search(r"([%s])\1{%d,}" % (escaped_chars, max_consecutive), password) is None
 
     @staticmethod
-    def check_consecutive_characters_order(password, characters, max_consecutive):
+    def check_consecutive_characters_order(password, max_consecutive):
         last_value = 255
         longest_sequence = 0
         counter = 1
-        character_bytes = characters.encode("utf-8")
-        for value in password.encode("utf-8"):
-            int_value = int.from_bytes(value, byteorder="big")
-            if int_value == last_value + 1 and value in character_bytes:
+        character_bytes = list(map(lambda x: ord(x),
+                                   list("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0987654321")))
+        for letter in password:
+            value = ord(letter)
+            if value == last_value + 1 and value in character_bytes:
                 counter += 1
             else:
                 counter = 1
+            last_value = value
             if counter > longest_sequence:
                 longest_sequence = counter
 

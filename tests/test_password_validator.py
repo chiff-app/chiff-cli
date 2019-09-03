@@ -41,12 +41,20 @@ def test_validate_returns_false_for_unallowed_characters():
     assert not validator.validate("Ver8aspdi€sd8na")
 
 
-def test_validate_returns_false_for_too_may_consecutive_characters():
+def test_validate_returns_false_for_too_many_consecutive_characters():
     ppd = test_helper.sample_ppd(8, 32, 3)
     validator = password_validator.PasswordValidator(ppd)
     password = "sod8na9p8d7snaaaa"
 
     assert not validator.validate(password)
+
+
+def test_validate_returns_true_for_not_too_many_consecutive_characters():
+    ppd = test_helper.sample_ppd(8, 32, 4)
+    validator = password_validator.PasswordValidator(ppd)
+    password = "sod8na9p8d7snaaaa"
+
+    assert validator.validate(password)
 
 
 def test_validate_returns_false_for_too_many_ordered_consecutive_characters():
@@ -55,6 +63,14 @@ def test_validate_returns_false_for_too_many_ordered_consecutive_characters():
     password = "sod8na9p8d7snabcd"
 
     assert not validator.validate(password)
+
+
+def test_validate_returns_true_for_not_too_many_ordered_consecutive_characters():
+    ppd = test_helper.sample_ppd(8, 32, 4)
+    validator = password_validator.PasswordValidator(ppd)
+    password = "sod8na9p8d7snabcd"
+
+    assert validator.validate(password)
 
 
 # For readability the character sets are defined in Testhelper.examplePPPD().
