@@ -282,6 +282,8 @@ def upload_account_data(url, username, password, site_name, password_key, signin
     site_id, secondary_site_id = crypto.get_site_ids(url)
     site_id = site_id.decode("utf-8")
     ppd = api.get_ppd(site_id)
+    if ppd is not None:
+        ppd = ppd["ppds"][0]
     if account_id is None:
         account_id = crypto.generic_hash_string(("%s_%s" % (site_id, username)))
     generator = PasswordGenerator(username, site_id, password_key, ppd)
