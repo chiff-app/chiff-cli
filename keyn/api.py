@@ -5,68 +5,113 @@ import requests
 
 from keyn import crypto
 
-API_URL = "https://api.keyn.app/dev/backup"
-PPD_URL = "https://api.keyn.app/dev/ppd"
+API_URL = "https://api.chiff.dev"
+ENV = "dev"
+
+
+def create_pairing_queue(keypair):
+    pub_key, params, headers = sign_request({"httpMethod": "POST"}, keypair)
+    url = '%s/%s/%s/%s/%s' % (API_URL, ENV, 'sessions', pub_key, 'pairing')
+    response = requests.post(url, params=params, headers=headers)
+    if response:
+        return response.json()
+    else:
+        raise Exception("Error %d: %s" % (response.status_code, response.text))
+
+
+def get_from_sqs(keypair, url, wait_time):
+    pub_key, params, headers = sign_request({"httpMethod": "GET", "waitTime": wait_time}, keypair)
+    response = requests.get(url, params=params, headers=headers)
+    if response:
+        return response.json()
+    else:
+        raise Exception("Error %d: %s" % (response.status_code, response.text))
 
 
 def get_backup_data(keypair):
-    url, params, headers = sign_request({"httpMethod": "GET"}, keypair)
-    return requests.get(url, params=params, headers=headers).json()
+    pub_key, params, headers = sign_request({"httpMethod": "GET"}, keypair)
+    url = '%s/%s/%s/%s/%s' % (API_URL, ENV, 'users', pub_key, 'accounts')
+    response = requests.get(url, params=params, headers=headers)
+    if response:
+        return response.json()
+    else:
+        raise Exception("Error %d: %s" % (response.status_code, response.text))
 
 
 def create_backup_data(keypair):
-    url, params, headers = sign_request({
-        "httpMethod": "PUT",
+    pub_key, params, headers = sign_request({
+        "httpMethod": "POST",
         "userId": crypto.user_id(keypair),
         "os": "cli"
     }, keypair)
-    return requests.put(url, params=params, headers=headers).json()
+    url = '%s/%s/%s/%s/%s' % (API_URL, ENV, 'users', pub_key, 'accounts')
+    response = requests.post(url, params=params, headers=headers)
+    if response:
+        return response.json()
+    else:
+        raise Exception("Error %d: %s" % (response.status_code, response.text))
 
 
 def set_backup_data(id, data, keypair):
-    url, params, headers = sign_request({
-        "httpMethod": "POST",
+    pub_key, params, headers = sign_request({
+        "httpMethod": "PUT",
         "id": id,
         "data": data
     }, keypair)
-    return requests.post(url, params=params, headers=headers).json()
+    url = '%s/%s/%s/%s/%s/%s' % (API_URL, ENV, 'users', pub_key, 'accounts', id)
+    response = requests.put(url, params=params, headers=headers)
+    if response:
+        return response.json()
+    else:
+        raise Exception("Error %d: %s" % (response.status_code, response.text))
 
 
 def sign_request(message, keypair):
     message["timestamp"] = int(time.time() * 1000)
     signed_message, pub_key = crypto.sign(json.dumps(message), keypair)
-    headers = {'Content-Type': 'application/json'}
-    params = {
-        'm': signed_message.message.decode().rstrip("="),
-        's': signed_message.signature.decode().rstrip("=")
+    headers = {
+        'Content-Type': 'application/json',
+        'keyn-signature': signed_message.signature.decode().rstrip("=")
     }
-    url = '%s/%s' % (API_URL, pub_key.decode().rstrip("="))
-    return url, params, headers
+    params = {
+        'm': signed_message.message.decode().rstrip("=")
+    }
+    return pub_key.decode().rstrip("="), params, headers
 
 
 def delete_account(id, keypair):
-    url, params, headers = sign_request({
+    pub_key, params, headers = sign_request({
         "httpMethod": "DELETE",
         "id": id
     }, keypair)
-    return requests.delete(url, params=params, headers=headers).json()
+    url = '%s/%s/%s/%s/%s/%s' % (API_URL, ENV, 'users', pub_key, 'accounts', id)
+    response = requests.delete(url, params=params, headers=headers)
+    if response:
+        return response.json()
+    else:
+        raise Exception("Error %d: %s" % (response.status_code, response.text))
 
 
 def delete_seed(keypair):
-    url, params, headers = sign_request({
+    pub_key, params, headers = sign_request({
         "httpMethod": "DELETE"
     }, keypair)
-    return requests.delete("%s/all" % url,
-                           params=params, headers=headers).json()
+    url = '%s/%s/%s/%s' % (API_URL, ENV, 'users', pub_key)
+    response = requests.delete("%s/all" % url,
+                           params=params, headers=headers)
+    if response:
+        return response.json()
+    else:
+        raise Exception("Error %d: %s" % (response.status_code, response.text))
 
 
 def get_ppd(id):
     headers = {'Content-Type': 'application/json',
                'Accept': 'application/json'}
     params = {'v': '1'}
-    url = '%s/%s' % (PPD_URL, id)
-    result = requests.get(url, params=params, headers=headers)
-    if result.status_code == 200:
-        return result.json()
-    elif result.status_code != 404:
-        raise Exception("A network error occurred: %d" % result.status_code)
+    url = '%s/%s/%s/%s' % (API_URL, ENV, 'ppd', id)
+    response = requests.get(url, params=params, headers=headers)
+    if response.status_code == 200:
+        return response.json()
+    elif response.status_code != 404:
+        raise Exception("A network error occurred: %d" % response.status_code)

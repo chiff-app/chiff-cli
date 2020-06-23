@@ -2,14 +2,18 @@ import csv
 import getpass
 import json
 import sys
-
+import os
+import configparser
 import click
+
 from pykeepass import PyKeePass
 from construct import ChecksumError
 
 from keyn import api, crypto
+from keyn.session import Session
 from keyn.password_generator import PasswordGenerator
 
+APP_NAME = 'Chiff'
 
 @click.group()
 def main():
@@ -17,14 +21,62 @@ def main():
 
 
 @main.command()
-def generate():
-    mnemonic = crypto.mnemonic(create_seed())
+def pair():
+    """Pair with a new device."""
+    session = Session()
+    session.pair()
+    print(click.get_app_dir(APP_NAME))
+    print("Pair with a new device.")
+
+
+@main.command()
+def unpair():
+    """Unpair from a currently paired device."""
+    print("This should show if we are currently paired.")
+
+
+@main.command()
+@click.option('-n', '--notes', is_flag=True,
+              help='Return the notes of the account')
+@click.option('-u', '--username', is_flag=True, help='Return the username of the account.')
+@click.option('-j', '--json', is_flag=True, help='Return the account in JSON.')
+def get(notes, username, json):
+    """Get data from a currently paired device. Only returns the password by default"""
+    if notes:
+        print("Return the notes")
+    elif username:
+        print("Return the username")
+    elif json:
+        print("Return the account data in json format")
+    else:
+        print("Return the password")
+
+
+@main.command()
+def status():
+    print("This should show if we are currently paired.")
+
+
+@main.group()
+def seed():
+    pass
+
+
+@seed.command()
+@click.option('-m', '--mnemonic', nargs=12, help='The 12-word mnemonic')
+def create(mnemonic):
+    if mnemonic:
+        seed = crypto.recover(mnemonic)
+    else:
+        seed = select_seed()
+
+    mnemonic = crypto.mnemonic(seed)
     click.echo("The seed has been generated:\n")
     click.echo(" ".join(mnemonic))
     click.echo("\nPlease write it down and store it in a safe place.")
 
 
-@main.command(name='recover')
+@seed.command(name='recover')
 @click.option('-m', '--mnemonic', nargs=12, help='The 12-word mnemonic')
 @click.option('-f', '--format', type=click.Choice(['csv', 'json', 'kdbx']),
               help='The output format. If data is written to a .kdbx database, '
@@ -80,7 +132,7 @@ def export_accounts(mnemonic, format, path):
         click.echo("Account export completed!")
 
 
-@main.command(name='import')
+@seed.command(name='import')
 @click.option('-m', '--mnemonic', nargs=12, help='The 12-word mnemonic')
 @click.option('-f', '--format', type=click.Choice(['csv', 'json', 'kdbx']),
               help='The input format. If data is written to a .kdbx database, the path to an existing '
@@ -127,7 +179,7 @@ def import_accounts(mnemonic, format, path):
         click.echo("Please write down your mnemonic: %s" % " ".join(crypto.mnemonic(seed)))
 
 
-@main.command(name='delete')
+@seed.command(name='delete')
 @click.option('-m', '--mnemonic', nargs=12, help='The 12-word mnemonic', prompt="Please enter the mnemonic: ",
               hide_input=True)
 @click.confirmation_option(prompt='Are you sure you want to delete this seed and all its associated accounts?')
@@ -138,7 +190,7 @@ def delete_accounts(mnemonic):
     click.echo("The seed was successfully deleted.")
 
 
-@main.group()
+@seed.group()
 def account():
     pass
 
@@ -208,7 +260,8 @@ def edit_account(mnemonic, id):
         click.echo("URL updated!")
 
     upload_account_data(account["url"], account["username"], account["password"], account["site_name"],
-                        password_key, signing_keypair, decryption_key, account["id"], account["index"], account["version"])
+                        password_key, signing_keypair, decryption_key, account["id"], account["index"],
+                        account["version"])
 
 
 @account.command(name='delete')
@@ -247,10 +300,16 @@ def pick_account(accounts):
     return accounts[int(selection) - 1]
 
 
-def create_seed():
-    seed = crypto.generate_seed()
+def create_seed(seed):
     _, signing_keypair, _ = crypto.derive_keys_from_seed(seed)
     api.create_backup_data(signing_keypair)
+    return seed
+
+
+def create_team_seed():
+    seed = crypto.generate_seed(32)
+    _, signing_keypair, _ = crypto.derive_keys_from_team_seed(seed)
+    api.create_team(signing_keypair)
 
     return seed
 
@@ -327,9 +386,21 @@ The mnemonic was not provided. What do you want to do?
 
 Answer''', type=click.Choice(['1', '2']), show_choices=False)
     if selection == '1':
-        return create_seed()
+        seed = crypto.generate_seed()
+        return create_seed(seed)
     else:
         return crypto.recover(obtain_mnemonic())
+
+
+def read_config():
+    cfg = os.path.join(click.get_app_dir(APP_NAME), 'config.ini')
+    parser = configparser.RawConfigParser()
+    parser.read([cfg])
+    rv = {}
+    for section in parser.sections():
+        for key, value in parser.items(section):
+            rv['%s.%s' % (section, key)] = value
+    return rv
 
 
 if __name__ == '__main__':

@@ -11,7 +11,7 @@ setup(
     install_requires=[
         'tldextract==2.2.1',
         'pykeepass==3.0.3',
-        'pynacl @ git+https://github.com/bas-d/pynacl.git',
+        'pynacl=1.4.0',
         'click==7.0',
         'requests==2.22.0'
     ],

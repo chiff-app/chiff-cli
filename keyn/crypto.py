@@ -8,6 +8,7 @@ import nacl.signing
 import nacl.utils
 import tldextract
 from nacl.hash import sha256, blake2b
+import nacl.public
 
 try:
     import importlib.resources as pkg_resources
@@ -20,6 +21,7 @@ SEED_SIZE = 16
 SEED_CONTEXT = "keynseed"
 BACKUP_CONTEXT = "keynback"
 PASSWORD_CONTEXT = "keynpass"
+TEAM_CONTEXT = "teamseed"
 PASSWORD_KEY_INDEX = 0
 BACKUP_KEY_INDEX = 1
 WORD_LIST = pkg_resources.read_text('keyn', "wordlist.txt")
@@ -31,8 +33,8 @@ def random_example_seed():
         lambda i: words[i], [secrets.randbelow(2048) for _ in range(1, 13)]))
 
 
-def generate_seed():
-    return nacl.utils.random(SEED_SIZE)
+def generate_seed(size=SEED_SIZE):
+    return nacl.utils.random(size)
 
 
 def mnemonic(seed):
@@ -68,7 +70,7 @@ def recover(mnemonic):
 
 def derive_keys_from_seed(seed):
     seed_hash = generic_hash(seed)
-    password_key = kdf_derive_from_key(seed_hash,
+    password_key = kdf_derive_from_key(seed,
                                        PASSWORD_KEY_INDEX,
                                        SEED_CONTEXT)
     backup_key = kdf_derive_from_key(seed_hash,
@@ -79,6 +81,21 @@ def derive_keys_from_seed(seed):
         nacl.secret.SecretBox(kdf_derive_from_key(backup_key,
                                                   0,
                                                   BACKUP_CONTEXT))
+
+
+def derive_keys_from_team_seed(seed):
+    password_key = kdf_derive_from_key(seed,
+                                       PASSWORD_KEY_INDEX,
+                                       TEAM_CONTEXT)
+    backup_key = kdf_derive_from_key(seed,
+                                     BACKUP_KEY_INDEX,
+                                     TEAM_CONTEXT)
+
+    return password_key,\
+        nacl.signing.SigningKey(backup_key), \
+        nacl.secret.SecretBox(kdf_derive_from_key(backup_key,
+                                                  0,
+                                                  TEAM_CONTEXT))
 
 
 def sign(message, signing_key: nacl.signing.SigningKey):
@@ -100,6 +117,12 @@ def decrypt(message, key: nacl.secret.SecretBox):
 
 def create_signing_keypair(seed):
     return nacl.signing.SigningKey(seed)
+
+
+def generate_keypair():
+    priv_key = nacl.public.PrivateKey.generate()
+    return priv_key.encode(nacl.encoding.URLSafeBase64Encoder).decode("utf-8").rstrip("="), \
+        priv_key.public_key.encode(nacl.encoding.URLSafeBase64Encoder).decode("utf-8").rstrip("=")
 
 
 def generic_hash(data):
@@ -143,6 +166,10 @@ def add_padding(string):
 def user_id(key):
     pubkey = key.verify_key.encode(encoder=nacl.encoding.URLSafeBase64Encoder).decode("utf-8").rstrip("=")
     return sha256(pubkey.encode("utf-8"), encoder=nacl.encoding.HexEncoder).decode("utf-8")
+
+
+def to_base64(data):
+    return nacl.encoding.URLSafeBase64Encoder.encode(data).decode("utf-8").rstrip("=")
 
 
 def get_site_ids(url):

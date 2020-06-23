@@ -7,9 +7,11 @@ verify_ssl = true
 pytest = "*"
 
 [packages]
-pynacl = {git = "https://github.com/bas-d/pynacl.git"}
+pynacl = "*"
 requests = "*"
 pykeepass = "*"
 tldextract = "*"
 click = "*"
 importlib-resources = "*"
+qr = "*"
+pillow = "*"
