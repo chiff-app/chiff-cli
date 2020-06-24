@@ -5,8 +5,11 @@ import qrcode
 import pickle
 import click
 import json
-import time
 from keyn.queue_handler import QueueHandler
+import itertools
+import threading
+import time
+import sys
 
 APP_NAME = "Chiff"
 
@@ -28,7 +31,7 @@ class Session:
         self.persistent_queue_handler = QueueHandler(signing_keypair, 'app-to-browser')
 
     def get_accounts(self):
-        result = api.get_session_data(self.signing_keypair)
+        result = api.get_session_data(self.signing_keypair, self.env)
         data = json.loads(crypto.decrypt(result["data"], self.key), encoding="utf-8")
         if data["appVersion"] != self.app_version:
             self.app_version = data["appVersion"]
@@ -40,7 +43,7 @@ class Session:
             accounts[id] = json.loads(crypto.decrypt(ciphertext, self.key), encoding="utf-8")
         return accounts
 
-    def send_push_message(self, message, category, body, title):
+    def send_push_message(self, message, category, body, **kwargs):
         apns_payload = {
             "aps": {
                 "category": category,
@@ -60,23 +63,30 @@ class Session:
                 "message": message
             }
         }
+        title = kwargs.get('title', None)
         if title:
             apns_payload["aps"]["alert"]["title"] = title
         data = json.dumps({
             "APNS_SANDBOX" if self.env == "dev" else "APNS": json.dumps(apns_payload),
             "GCM": json.dumps(gcm_payload)
         })
-        api.send_to_sns(self.signing_keypair, data, self.arn)
+        api.send_to_sns(self.signing_keypair, data, self.arn, self.env)
 
     def send_request(self, account_id, site_name):
         request = {"a": account_id, "r": 19, "b": 42, "n": site_name, "z": int(time.time() * 1000)}
         request = crypto.encrypt(json.dumps(request).encode("utf-8"), self.key)
-        self.send_push_message(request, "PASSWORD_REQUEST", "Open to authorize", "Login request")
+        self.send_push_message(request, "PASSWORD_REQUEST", "Open to authorize", title="Login request")
         response = self.volatile_queue_handler.start(True)[0]
         message = response["body"]
         message = json.loads(crypto.decrypt(message, self.key), encoding="utf-8")
-        api.delete_from_volatile_queue(self.signing_keypair, response["receiptHandle"])
+        api.delete_from_volatile_queue(self.signing_keypair, response["receiptHandle"], self.env)
         return message
+
+    def end(self):
+        request = {"r": 7, "z": int(time.time() * 1000)}
+        request = crypto.encrypt(json.dumps(request).encode("utf-8"), self.key)
+        self.send_push_message(request, "END_SESSION", "Session ended by CLI")
+        os.remove("%s/session" % click.get_app_dir(APP_NAME))
 
     @staticmethod
     def get():
@@ -111,13 +121,29 @@ class Session:
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_H,
-            box_size=8,
+            box_size=4,
             border=2,
         )
         qr.add_data('https://keyn.app/pair?p=%s&q=%s&b=cli&o=%s&v=1' % (pub_key, crypto.to_base64(seed), 'Mac%20OS'))
-        qr.make(fit=True)
+        qr.make()
         qr.print_ascii()
+        done = False
+
+        # here is the animation
+        def animate():
+            for c in itertools.cycle(['|', '/', '-', '\\']):
+                if done:
+                    break
+                sys.stdout.write('\rWaiting for pairing ' + c)
+                sys.stdout.flush()
+                time.sleep(0.1)
+
+        t = threading.Thread(target=animate)
+        t.daemon = True
+        t.start()
+
         message = queue_handler.start(True)[0]["body"]
+        done = True
         message = crypto.verify(message, pairing_keypair.verify_key)
         message = crypto.decrypt_anonymous(message, priv_key)
         message = json.loads(message)

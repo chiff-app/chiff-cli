@@ -2,12 +2,12 @@ import csv
 import getpass
 import json
 import sys
-import os
-import configparser
 import click
+
 
 from pykeepass import PyKeePass
 from construct import ChecksumError
+from tabulate import tabulate
 
 from keyn import api, crypto
 from keyn.session import Session
@@ -29,18 +29,27 @@ def pair():
     session = Session.get()
     if session:
         if click.confirm("A session already exists. Do you want to end the current session?"):
-            unpair()
+            session.end()
             Session.pair()
         else:
             click.echo("Exiting...")
+            return
     else:
         Session.pair()
+        click.echo("\nSession successfully created!")
 
 
 @main.command()
 def unpair():
     """Unpair from a currently paired device."""
-    print("This should show if we are currently paired.")
+    session = Session.get()
+    if session:
+        if click.confirm("Are you sure you want to end the current session?"):
+            session.end()
+        else:
+            click.echo("Exiting...")
+    else:
+        click.echo("There currently does not seem to be an active session.")
 
 
 @main.command()
@@ -54,14 +63,17 @@ def unpair():
 def get(id, notes, skip):
     """Get data from a currently paired device. Only returns the password by default"""
     session = Session.get()
+    accounts = None
     if not session:
         if click.confirm("There does not seem to be an active session. Do you want to pair now?"):
             session, accounts = Session.pair()
         else:
             click.echo("Exiting...")
+            return
     if skip:
-        account = session.get_accounts()[id]
-        response = session.send_request(id, account["sites"][0]["name"])
+        if not accounts:
+            accounts = session.get_accounts()
+        response = session.send_request(id, accounts[id]["sites"][0]["name"])
     else:
         response = session.send_request(id, "Unknown")
     if notes:
@@ -80,11 +92,25 @@ def get(id, notes, skip):
 
 @main.command()
 def status():
-    print("This should show if we are currently paired.")
+    """Shows the status of the current session and an overview of all accounts."""
+    session = Session.get()
+    if session:
+        click.echo("There is an active session with id %s.\n" % session.id)
+        click.echo("Accounts:\n")
+        accounts = list(map(lambda x: {"id": x["id"],
+                                       "username": x["username"],
+                                       "name": x["sites"][0]["name"],
+                                       "URL": x["sites"][0]["url"]},
+                            session.get_accounts().values()))
+        print(tabulate(accounts, headers="keys", tablefmt="github"))
+        click.echo("")
+    else:
+        click.echo("There is no active session.")
 
 
 @main.group()
 def seed():
+    """Set of operations to directly manipulate accounts on a seed."""
     pass
 
 

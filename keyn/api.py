@@ -29,9 +29,9 @@ def delete_pairing_queue(keypair):
         raise Exception("Error %d: %s" % (response.status_code, response.text))
 
 
-def get_session_data(keypair):
+def get_session_data(keypair, env):
     pub_key, params, headers = sign_request({"httpMethod": "GET"}, keypair)
-    url = '%s/%s/%s/%s' % (API_URL, ENV, 'sessions', pub_key)
+    url = '%s/%s/%s/%s' % (API_URL, env, 'sessions', pub_key)
     response = requests.get(url, params=params, headers=headers)
     if response:
         return response.json()
@@ -48,9 +48,9 @@ def get_from_sqs(keypair, url, wait_time):
         raise Exception("Error %d: %s" % (response.status_code, response.text))
 
 
-def send_to_sns(keypair, message, arn):
+def send_to_sns(keypair, message, arn, env):
     pub_key, params, headers = sign_request({"httpMethod": "PUT", "data": message, "arn": arn}, keypair)
-    url = '%s/%s/%s/%s/%s' % (API_URL, ENV, 'sessions', pub_key, "push")
+    url = '%s/%s/%s/%s/%s' % (API_URL, env, 'sessions', pub_key, "push")
     response = requests.put(url, params=params, headers=headers)
     if response:
         return response.json()
@@ -58,9 +58,9 @@ def send_to_sns(keypair, message, arn):
         raise Exception("Error %d: %s" % (response.status_code, response.text))
 
 
-def delete_from_volatile_queue(keypair, receipt_handle):
+def delete_from_volatile_queue(keypair, receipt_handle, env):
     pub_key, params, headers = sign_request({"httpMethod": "DELETE", "receiptHandle": receipt_handle}, keypair)
-    url = '%s/%s/%s/%s/%s' % (API_URL, ENV, 'sessions', pub_key, 'volatile')
+    url = '%s/%s/%s/%s/%s' % (API_URL, env, 'sessions', pub_key, 'volatile')
     response = requests.delete(url, params=params, headers=headers)
     if response:
         return response.json()
