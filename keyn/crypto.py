@@ -104,6 +104,10 @@ def sign(message, signing_key: nacl.signing.SigningKey):
            signing_key.verify_key.encode(nacl.encoding.URLSafeBase64Encoder)
 
 
+def verify(message64, pub_key: nacl.signing.VerifyKey):
+    return pub_key.verify(add_padding(message64), encoder=nacl.encoding.URLSafeBase64Encoder)
+
+
 def encrypt(message, key: nacl.secret.SecretBox):
     return key.encrypt(message,
                        encoder=nacl.encoding.URLSafeBase64Encoder)\
@@ -115,13 +119,23 @@ def decrypt(message, key: nacl.secret.SecretBox):
                        encoder=nacl.encoding.URLSafeBase64Encoder)
 
 
+def decryptAnonymous(message, key: nacl.public.PrivateKey):
+    box = nacl.public.SealedBox(key)
+    return box.decrypt(message)
+
+
 def create_signing_keypair(seed):
     return nacl.signing.SigningKey(seed)
 
 
+def generate_shared_key(pub_key_64, priv_key):
+    pub_key = nacl.public.PublicKey(nacl.encoding.URLSafeBase64Encoder.decode(add_padding(pub_key_64)))
+    return nacl.public.Box(priv_key, pub_key).shared_key()
+
+
 def generate_keypair():
     priv_key = nacl.public.PrivateKey.generate()
-    return priv_key.encode(nacl.encoding.URLSafeBase64Encoder).decode("utf-8").rstrip("="), \
+    return priv_key, \
         priv_key.public_key.encode(nacl.encoding.URLSafeBase64Encoder).decode("utf-8").rstrip("=")
 
 
@@ -170,6 +184,10 @@ def user_id(key):
 
 def to_base64(data):
     return nacl.encoding.URLSafeBase64Encoder.encode(data).decode("utf-8").rstrip("=")
+
+
+def from_base64(str):
+    return nacl.encoding.URLSafeBase64Encoder.decode(add_padding(str))
 
 
 def get_site_ids(url):

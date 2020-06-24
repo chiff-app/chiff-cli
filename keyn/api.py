@@ -19,6 +19,16 @@ def create_pairing_queue(keypair):
         raise Exception("Error %d: %s" % (response.status_code, response.text))
 
 
+def delete_pairing_queue(keypair):
+    pub_key, params, headers = sign_request({"httpMethod": "DELETE"}, keypair)
+    url = '%s/%s/%s/%s/%s' % (API_URL, ENV, 'sessions', pub_key, 'pairing')
+    response = requests.delete(url, params=params, headers=headers)
+    if response:
+        return response.json()
+    else:
+        raise Exception("Error %d: %s" % (response.status_code, response.text))
+
+
 def get_from_sqs(keypair, url, wait_time):
     pub_key, params, headers = sign_request({"httpMethod": "GET", "waitTime": wait_time}, keypair)
     response = requests.get(url, params=params, headers=headers)

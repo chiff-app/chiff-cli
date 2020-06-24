@@ -12,8 +12,10 @@ from construct import ChecksumError
 from keyn import api, crypto
 from keyn.session import Session
 from keyn.password_generator import PasswordGenerator
+from pathlib import Path
 
 APP_NAME = 'Chiff'
+
 
 @click.group()
 def main():
@@ -23,10 +25,16 @@ def main():
 @main.command()
 def pair():
     """Pair with a new device."""
-    session = Session()
-    session.pair()
-    print(click.get_app_dir(APP_NAME))
-    print("Pair with a new device.")
+    Path(click.get_app_dir(APP_NAME)).mkdir(parents=True, exist_ok=True)
+    session = Session.get()
+    if session:
+        if click.confirm("A session already exists. Do you want to end the current session?"):
+            unpair()
+            Session.pair()
+        else:
+            click.echo("Exiting...")
+    else:
+        Session.pair()
 
 
 @main.command()
@@ -42,6 +50,13 @@ def unpair():
 @click.option('-j', '--json', is_flag=True, help='Return the account in JSON.')
 def get(notes, username, json):
     """Get data from a currently paired device. Only returns the password by default"""
+    session = Session.get()
+    if not session:
+        if click.confirm("There does not seem to be an active session. Do you want to pair now?"):
+            session, accounts = Session.pair()
+        else:
+            click.echo("Exiting...")
+
     if notes:
         print("Return the notes")
     elif username:
@@ -49,6 +64,7 @@ def get(notes, username, json):
     elif json:
         print("Return the account data in json format")
     else:
+        print(accounts)
         print("Return the password")
 
 
