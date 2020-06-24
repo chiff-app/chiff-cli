@@ -27,7 +27,56 @@ class Session:
         self.volatile_queue_handler = QueueHandler(signing_keypair, 'volatile')
         self.persistent_queue_handler = QueueHandler(signing_keypair, 'app-to-browser')
 
+    def get_accounts(self):
+        result = api.get_session_data(self.signing_keypair)
+        data = json.loads(crypto.decrypt(result["data"], self.key), encoding="utf-8")
+        if data["appVersion"] != self.app_version:
+            self.app_version = data["appVersion"]
+            with open("%s/session" % click.get_app_dir(APP_NAME), 'wb') as f:
+                pickle.dump(self, f)
+                f.close()
+        accounts = result["accounts"]
+        for id, ciphertext in accounts.items():
+            accounts[id] = json.loads(crypto.decrypt(ciphertext, self.key), encoding="utf-8")
+        return accounts
 
+    def send_push_message(self, message, category, body, title):
+        apns_payload = {
+            "aps": {
+                "category": category,
+                "mutable-content": 1,
+                "launch-image": "logo",
+                "alert": {
+                    "body": body
+                },
+                "sound": "chime.aiff"
+            },
+            "sessionID": self.id,
+            "data": message
+        }
+        gcm_payload = {
+            "data": {
+                "sessionID": self.id,
+                "message": message
+            }
+        }
+        if title:
+            apns_payload["aps"]["alert"]["title"] = title
+        data = json.dumps({
+            "APNS_SANDBOX" if self.env == "dev" else "APNS": json.dumps(apns_payload),
+            "GCM": json.dumps(gcm_payload)
+        })
+        api.send_to_sns(self.signing_keypair, data, self.arn)
+
+    def send_request(self, account_id, site_name):
+        request = {"a": account_id, "r": 19, "b": 42, "n": site_name, "z": int(time.time() * 1000)}
+        request = crypto.encrypt(json.dumps(request).encode("utf-8"), self.key)
+        self.send_push_message(request, "PASSWORD_REQUEST", "Open to authorize", "Login request")
+        response = self.volatile_queue_handler.start(True)[0]
+        message = response["body"]
+        message = json.loads(crypto.decrypt(message, self.key), encoding="utf-8")
+        api.delete_from_volatile_queue(self.signing_keypair, response["receiptHandle"])
+        return message
 
     @staticmethod
     def get():
@@ -37,7 +86,6 @@ class Session:
                 session = pickle.load(f)
                 f.close()
                 return session
-
 
     @staticmethod
     def pair():
@@ -71,14 +119,13 @@ class Session:
         qr.print_ascii()
         message = queue_handler.start(True)[0]["body"]
         message = crypto.verify(message, pairing_keypair.verify_key)
-        message = crypto.decryptAnonymous(message, priv_key)
+        message = crypto.decrypt_anonymous(message, priv_key)
         message = json.loads(message)
         if message["type"] != 0 or pub_key != message["browserPubKey"]:
             raise Exception("Pairing error")
         shared_key = crypto.generate_shared_key(message["pubKey"], priv_key)
         session = Session(shared_key, message["sessionID"], message["userID"], message["version"], message["os"],
                           message["appVersion"], message["environment"], message["arn"])
-        # TODO: Save accounts
         with open("%s/session" % click.get_app_dir(APP_NAME), 'wb') as f:
             pickle.dump(session, f)
             f.close()

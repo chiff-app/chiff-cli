@@ -44,11 +44,14 @@ def unpair():
 
 
 @main.command()
+@click.option('-i', '--id',
+              help='The id of the account you want the data for')
 @click.option('-n', '--notes', is_flag=True,
               help='Return the notes of the account')
-@click.option('-u', '--username', is_flag=True, help='Return the username of the account.')
-@click.option('-j', '--json', is_flag=True, help='Return the account in JSON.')
-def get(notes, username, json):
+@click.option('-s', '--skip', is_flag=True,
+              help='Skip fetching the accounts first to check if the account exists.')
+# @click.option('-j', '--json', is_flag=True, help='Return the account in JSON.')
+def get(id, notes, skip):
     """Get data from a currently paired device. Only returns the password by default"""
     session = Session.get()
     if not session:
@@ -56,16 +59,23 @@ def get(notes, username, json):
             session, accounts = Session.pair()
         else:
             click.echo("Exiting...")
-
-    if notes:
-        print("Return the notes")
-    elif username:
-        print("Return the username")
-    elif json:
-        print("Return the account data in json format")
+    if skip:
+        account = session.get_accounts()[id]
+        response = session.send_request(id, account["sites"][0]["name"])
     else:
-        print(accounts)
-        print("Return the password")
+        response = session.send_request(id, "Unknown")
+    if notes:
+        if "y" in response:
+            print(response["y"], end='')
+        else:
+            raise Exception("No notes found in response")
+    # elif json:
+    #     print("json")
+    else:
+        if "p" in response:
+            print(response["p"], end='')
+        else:
+            raise Exception("No password found in response.")
 
 
 @main.command()
@@ -335,7 +345,7 @@ def decrypt_accounts(encrypted_accounts, password_key, decryption_key):
 
     # Recovers the backup data from the server and decrypts it
     for id, encrypted_account in encrypted_accounts:
-        decrypted_account_byte = crypto.decrypt(encrypted_account, decryption_key)
+        decrypted_account_byte = crypto.decrypt_symmetric(encrypted_account, decryption_key)
         decrypted_account_string = decrypted_account_byte.decode('utf-8')
         decrypted_account = json.loads(decrypted_account_string)
 
@@ -377,7 +387,7 @@ def upload_account_data(url, username, password, site_name, password_key, signin
         'enabled': False,
         'version': version
     }
-    ciphertext = crypto.encrypt(json.dumps(account).encode("utf-8"), encryption_key)
+    ciphertext = crypto.encrypt_symmetric(json.dumps(account).encode("utf-8"), encryption_key)
     api.set_backup_data(account_id, ciphertext, signing_keypair)
 
 
@@ -406,17 +416,6 @@ Answer''', type=click.Choice(['1', '2']), show_choices=False)
         return create_seed(seed)
     else:
         return crypto.recover(obtain_mnemonic())
-
-
-def read_config():
-    cfg = os.path.join(click.get_app_dir(APP_NAME), 'config.ini')
-    parser = configparser.RawConfigParser()
-    parser.read([cfg])
-    rv = {}
-    for section in parser.sections():
-        for key, value in parser.items(section):
-            rv['%s.%s' % (section, key)] = value
-    return rv
 
 
 if __name__ == '__main__':

@@ -1,6 +1,7 @@
 import secrets
 from functools import reduce
 from urllib.parse import urlparse
+from math import ceil
 
 import nacl.encoding
 import nacl.secret
@@ -18,6 +19,7 @@ except ImportError:
 
 
 SEED_SIZE = 16
+PADDING_BLOCK_SIZE = 200
 SEED_CONTEXT = "keynseed"
 BACKUP_CONTEXT = "keynback"
 PASSWORD_CONTEXT = "keynpass"
@@ -108,18 +110,26 @@ def verify(message64, pub_key: nacl.signing.VerifyKey):
     return pub_key.verify(add_padding(message64), encoder=nacl.encoding.URLSafeBase64Encoder)
 
 
-def encrypt(message, key: nacl.secret.SecretBox):
+def encrypt_symmetric(message, key: nacl.secret.SecretBox):
     return key.encrypt(message,
-                       encoder=nacl.encoding.URLSafeBase64Encoder)\
-        .decode("utf-8").rstrip("=")
+                       encoder=nacl.encoding.URLSafeBase64Encoder).decode("utf-8").rstrip("=")
 
 
-def decrypt(message, key: nacl.secret.SecretBox):
+def decrypt_symmetric(message, key: nacl.secret.SecretBox):
     return key.decrypt(add_padding(message),
                        encoder=nacl.encoding.URLSafeBase64Encoder)
 
 
-def decryptAnonymous(message, key: nacl.public.PrivateKey):
+def encrypt(message, key):
+    box = nacl.secret.SecretBox(key)
+    return box.encrypt(pad(message), encoder=nacl.encoding.URLSafeBase64Encoder).decode("utf-8").rstrip("=")
+
+
+def decrypt(message, key):
+    return unpad(nacl.secret.SecretBox(key).decrypt(add_padding(message), encoder=nacl.encoding.URLSafeBase64Encoder))
+
+
+def decrypt_anonymous(message, key: nacl.public.PrivateKey):
     box = nacl.public.SealedBox(key)
     return box.decrypt(message)
 
@@ -188,6 +198,22 @@ def to_base64(data):
 
 def from_base64(str):
     return nacl.encoding.URLSafeBase64Encoder.decode(add_padding(str))
+
+
+def pad(src):
+    src_len = len(src)
+    block_number = ceil((src_len+1)/PADDING_BLOCK_SIZE)
+    pad_size = block_number * PADDING_BLOCK_SIZE - src_len
+    return src + b'\x80' + bytes([0] * (pad_size-1))
+
+
+def unpad(encoded_bytes):
+    for idx, byte in enumerate(reversed(encoded_bytes)):
+        pad_size = 0
+        if bytes([byte]) == b'\x80':
+            pad_size = idx+1
+            break
+    return encoded_bytes[:-pad_size]
 
 
 def get_site_ids(url):
