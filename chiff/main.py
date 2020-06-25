@@ -1,5 +1,6 @@
 import click
 import time
+import json
 
 from tabulate import tabulate
 from chiff.session import Session
@@ -12,6 +13,10 @@ APP_NAME = 'Chiff'
 
 @click.group()
 def main():
+    """This application can be paired with the Chiff app for iOS or Android,
+    allowing you to fetch password or notes from your accounts.
+    Pair it with your app by using chiff pair.
+    """
     pass
 
 
@@ -45,15 +50,17 @@ def unpair():
         click.echo("There currently does not seem to be an active session.")
 
 
-@main.command()
+@main.command(short_help="Get data from a currently paired device. Only returns the password by default")
 @click.option('-i', '--id',
               help='The id of the account you want the data for')
 @click.option('-n', '--notes', is_flag=True,
               help='Return the notes of the account')
+@click.option('-j', '--format-json', is_flag=True,
+              help='Return account in JSON format ({ "username": "example", "password": "secret", '
+                   '"notes": "important note" | undefined })')
 @click.option('-s', '--skip', is_flag=True,
               help='Skip fetching the accounts first to check if the account exists.')
-# @click.option('-j', '--json', is_flag=True, help='Return the account in JSON.')
-def get(id, notes, skip):
+def get(id, notes, format_json, skip):
     """Get data from a currently paired device. Only returns the password by default"""
     session = Session.get()
     accounts = None
@@ -64,7 +71,7 @@ def get(id, notes, skip):
             click.echo("Exiting...")
             return
     request = {"a": id, "r": 19, "b": 42, "z": int(time.time() * 1000)}
-    if skip:
+    if not skip:
         if not accounts:
             accounts = session.get_accounts()
         request["n"] = accounts[id]["sites"][0]["name"]
@@ -76,8 +83,11 @@ def get(id, notes, skip):
             print(response["y"], end='')
         else:
             raise Exception("No notes found in response")
-    # elif json:
-    #     print("json")
+    elif format_json:
+        result = {"username": accounts[id]["username"], "password": response["p"]}
+        if "y" in response:
+            result["notes"] = response["y"]
+        print(json.dumps(result))
     else:
         if "p" in response:
             print(response["p"], end='')
@@ -85,7 +95,7 @@ def get(id, notes, skip):
             raise Exception("No password found in response.")
 
 
-@main.command()
+@main.command(short_help="Shows the status of the current session and an overview of all accounts.")
 def status():
     """Shows the status of the current session and an overview of all accounts."""
     session = Session.get()
