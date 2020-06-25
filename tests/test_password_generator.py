@@ -1,7 +1,7 @@
 import pytest
 import secrets
 from tests import test_helper
-from keyn import password_validator, password_generator
+from chiff import password_validator, password_generator
 
 
 password_seed = test_helper.derive_password_key()

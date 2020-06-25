@@ -26,7 +26,7 @@ PASSWORD_CONTEXT = "keynpass"
 TEAM_CONTEXT = "teamseed"
 PASSWORD_KEY_INDEX = 0
 BACKUP_KEY_INDEX = 1
-WORD_LIST = pkg_resources.read_text('keyn', "wordlist.txt")
+WORD_LIST = pkg_resources.read_text('chiff', "wordlist.txt")
 
 
 def random_example_seed():

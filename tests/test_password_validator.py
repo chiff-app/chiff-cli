@@ -1,5 +1,5 @@
 from tests import test_helper
-from keyn import password_validator
+from chiff import password_validator
 
 
 def test_validate_returns_false_when_max_length_exceeded():

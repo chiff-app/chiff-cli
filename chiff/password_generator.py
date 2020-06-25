@@ -1,5 +1,5 @@
 import math
-from keyn import password_validator, crypto
+from chiff import password_validator, crypto
 
 
 class PasswordGenerator:

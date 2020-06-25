@@ -4,111 +4,14 @@ import json
 import sys
 import click
 
-
 from pykeepass import PyKeePass
 from construct import ChecksumError
-from tabulate import tabulate
 
-from keyn import api, crypto
-from keyn.session import Session
-from keyn.password_generator import PasswordGenerator
-from pathlib import Path
-
-APP_NAME = 'Chiff'
+from chiff import api, crypto
+from chiff.password_generator import PasswordGenerator
 
 
 @click.group()
-def main():
-    pass
-
-
-@main.command()
-def pair():
-    """Pair with a new device."""
-    Path(click.get_app_dir(APP_NAME)).mkdir(parents=True, exist_ok=True)
-    session = Session.get()
-    if session:
-        if click.confirm("A session already exists. Do you want to end the current session?"):
-            session.end()
-            Session.pair()
-        else:
-            click.echo("Exiting...")
-            return
-    else:
-        Session.pair()
-        click.echo("\nSession successfully created!")
-
-
-@main.command()
-def unpair():
-    """Unpair from a currently paired device."""
-    session = Session.get()
-    if session:
-        if click.confirm("Are you sure you want to end the current session?"):
-            session.end()
-        else:
-            click.echo("Exiting...")
-    else:
-        click.echo("There currently does not seem to be an active session.")
-
-
-@main.command()
-@click.option('-i', '--id',
-              help='The id of the account you want the data for')
-@click.option('-n', '--notes', is_flag=True,
-              help='Return the notes of the account')
-@click.option('-s', '--skip', is_flag=True,
-              help='Skip fetching the accounts first to check if the account exists.')
-# @click.option('-j', '--json', is_flag=True, help='Return the account in JSON.')
-def get(id, notes, skip):
-    """Get data from a currently paired device. Only returns the password by default"""
-    session = Session.get()
-    accounts = None
-    if not session:
-        if click.confirm("There does not seem to be an active session. Do you want to pair now?"):
-            session, accounts = Session.pair()
-        else:
-            click.echo("Exiting...")
-            return
-    if skip:
-        if not accounts:
-            accounts = session.get_accounts()
-        response = session.send_request(id, accounts[id]["sites"][0]["name"])
-    else:
-        response = session.send_request(id, "Unknown")
-    if notes:
-        if "y" in response:
-            print(response["y"], end='')
-        else:
-            raise Exception("No notes found in response")
-    # elif json:
-    #     print("json")
-    else:
-        if "p" in response:
-            print(response["p"], end='')
-        else:
-            raise Exception("No password found in response.")
-
-
-@main.command()
-def status():
-    """Shows the status of the current session and an overview of all accounts."""
-    session = Session.get()
-    if session:
-        click.echo("There is an active session with id %s.\n" % session.id)
-        click.echo("Accounts:\n")
-        accounts = list(map(lambda x: {"id": x["id"],
-                                       "username": x["username"],
-                                       "name": x["sites"][0]["name"],
-                                       "URL": x["sites"][0]["url"]},
-                            session.get_accounts().values()))
-        print(tabulate(accounts, headers="keys", tablefmt="github"))
-        click.echo("")
-    else:
-        click.echo("There is no active session.")
-
-
-@main.group()
 def seed():
     """Set of operations to directly manipulate accounts on a seed."""
     pass
@@ -442,7 +345,3 @@ Answer''', type=click.Choice(['1', '2']), show_choices=False)
         return create_seed(seed)
     else:
         return crypto.recover(obtain_mnemonic())
-
-
-if __name__ == '__main__':
-    main()

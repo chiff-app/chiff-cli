@@ -13,6 +13,6 @@ pykeepass = "*"
 tldextract = "*"
 click = "*"
 importlib-resources = "*"
-qr = "*"
 pillow = "*"
 tabulate = "*"
+keyn = {editable = true,path = "."}

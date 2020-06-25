@@ -1,6 +1,6 @@
 import time
 import nacl.encoding
-from keyn import crypto
+from chiff import crypto
 from nacl.hash import sha256
 
 

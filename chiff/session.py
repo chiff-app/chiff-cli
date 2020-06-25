@@ -1,15 +1,17 @@
-from keyn import api, crypto
+from chiff import api, crypto
 from os import path
 import os
 import qrcode
 import pickle
 import click
 import json
-from keyn.queue_handler import QueueHandler
+from chiff.queue_handler import QueueHandler
 import itertools
 import threading
 import time
 import sys
+import platform
+from urllib.parse import urlencode
 
 APP_NAME = "Chiff"
 
@@ -72,8 +74,7 @@ class Session:
         })
         api.send_to_sns(self.signing_keypair, data, self.arn, self.env)
 
-    def send_request(self, account_id, site_name):
-        request = {"a": account_id, "r": 19, "b": 42, "n": site_name, "z": int(time.time() * 1000)}
+    def send_request(self, request):
         request = crypto.encrypt(json.dumps(request).encode("utf-8"), self.key)
         self.send_push_message(request, "PASSWORD_REQUEST", "Open to authorize", title="Login request")
         response = self.volatile_queue_handler.start(True)[0]
@@ -124,12 +125,15 @@ class Session:
             box_size=4,
             border=2,
         )
-        qr.add_data('https://keyn.app/pair?p=%s&q=%s&b=cli&o=%s&v=1' % (pub_key, crypto.to_base64(seed), 'Mac%20OS'))
+        qr.add_data('https://chiff.app/pair?%s' % urlencode({"p": pub_key,
+                                                           "q": crypto.to_base64(seed),
+                                                           "b": "cli",
+                                                           "o": platform.node(),
+                                                           "v": 1}))
         qr.make()
         qr.print_ascii()
         done = False
 
-        # here is the animation
         def animate():
             for c in itertools.cycle(['|', '/', '-', '\\']):
                 if done:
