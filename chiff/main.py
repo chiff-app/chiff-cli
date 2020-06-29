@@ -1,6 +1,8 @@
 import click
 import time
 import json
+from chiff import crypto
+from chiff.constants import MessageType
 
 from tabulate import tabulate
 from chiff.session import Session
@@ -70,7 +72,7 @@ def get(id, notes, format_json, skip):
         else:
             click.echo("Exiting...")
             return
-    request = {"a": id, "r": 19, "b": 42, "z": int(time.time() * 1000)}
+    request = {"a": id, "r": 19, "b": MessageType.GET_DETAILS.value, "z": int(time.time() * 1000)}
     if not skip:
         if not accounts:
             accounts = session.get_accounts()
@@ -93,6 +95,44 @@ def get(id, notes, format_json, skip):
             print(response["p"], end='')
         else:
             raise Exception("No password found in response.")
+
+
+@main.command(short_help="Add a new account")
+@click.option('-u', '--username', required=True,
+              help='The username of the account you want to add')
+@click.option('-l', '--url', required=True,
+              help='The URL of the account you want to add')
+@click.option('-s', '--name', required=True,
+              help='The name of the account you want to add')
+@click.option('-p', '--password',
+              help='The password of the account you want to add. Will be prompted for if not provided')
+@click.option('-n', '--notes',
+              help='The notes of the account you want to add')
+def add(username, url, name, password, notes):
+    """Get data from a currently paired device. Only returns the password by default"""
+    session = Session.get()
+    if not session:
+        if click.confirm("There does not seem to be an active session. Do you want to pair now?"):
+            session = Session.pair()
+        else:
+            click.echo("Exiting...")
+            return
+    if not password:
+        password = click.prompt('Enter a new password', default="", show_default=False,
+                                confirmation_prompt=True, hide_input=True)
+    site_id = crypto.get_site_ids(url)[0].decode("utf-8")
+    request = {"s": site_id,
+               "r": MessageType.ADD.value,
+               "n": name,
+               "l": url,
+               "b": 42,
+               "u": username,
+               "p": password,
+               "z": int(time.time() * 1000)}
+    if notes:
+        request["y"] = notes
+    session.send_request(request)
+    click.echo("Account created with id %s" % crypto.generic_hash_string(("%s_%s" % (site_id, username))))
 
 
 @main.command(short_help="Shows the status of the current session and an overview of all accounts.")
