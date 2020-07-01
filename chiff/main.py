@@ -249,7 +249,7 @@ def status():
                 session.get_accounts().values(),
             )
         )
-        print(tabulate(accounts, headers="keys", tablefmt="github"))
+        print(tabulate(accounts, headers="keys", tablefmt="psql"))
         click.echo("")
     else:
         click.echo("There is no active session.")

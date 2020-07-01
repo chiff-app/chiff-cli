@@ -258,7 +258,7 @@ def create_account(mnemonic):
         signing_keypair,
         decryption_key,
     )
-    print("Account succesfully updated!")
+    print("Account successfully updated!")
 
 
 @account.command(name="edit", short_help="Update an account on a seed")
