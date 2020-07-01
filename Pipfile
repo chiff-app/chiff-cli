@@ -15,4 +15,5 @@ click = "*"
 importlib-resources = "*"
 pillow = "*"
 tabulate = "*"
-keyn = {editable = true,path = "."}
+chiff = {editable = true,path = "."}
+

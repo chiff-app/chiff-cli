@@ -1,5 +1,7 @@
 from enum import Enum
 
+APP_NAME = "Chiff"
+
 
 class MessageType(Enum):
     PAIR = 0
@@ -22,4 +24,4 @@ class MessageType(Enum):
     WEBAUTHN_LOGIN = 17
     BULK_LOGIN = 18
     GET_DETAILS = 19
-
+    UPDATE_ACCOUNT = 20

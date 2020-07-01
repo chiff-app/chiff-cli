@@ -6,6 +6,7 @@ import pickle
 import click
 import json
 from chiff.queue_handler import QueueHandler
+from chiff.constants import APP_NAME
 import itertools
 import threading
 import time
@@ -13,11 +14,8 @@ import sys
 import platform
 from urllib.parse import urlencode
 
-APP_NAME = "Chiff"
-
 
 class Session:
-
     def __init__(self, key, session_id, user_id, version, os, app_version, env, arn):
         self.key = key
         self.id = session_id
@@ -29,20 +27,22 @@ class Session:
         self.arn = arn
         signing_keypair = crypto.create_signing_keypair(key)
         self.signing_keypair = signing_keypair
-        self.volatile_queue_handler = QueueHandler(signing_keypair, 'volatile')
-        self.persistent_queue_handler = QueueHandler(signing_keypair, 'app-to-browser')
+        self.volatile_queue_handler = QueueHandler(signing_keypair, "volatile")
+        self.persistent_queue_handler = QueueHandler(signing_keypair, "app-to-browser")
 
     def get_accounts(self):
         result = api.get_session_data(self.signing_keypair, self.env)
         data = json.loads(crypto.decrypt(result["data"], self.key), encoding="utf-8")
         if data["appVersion"] != self.app_version:
             self.app_version = data["appVersion"]
-            with open("%s/session" % click.get_app_dir(APP_NAME), 'wb') as f:
+            with open("%s/session" % click.get_app_dir(APP_NAME), "wb") as f:
                 pickle.dump(self, f)
                 f.close()
         accounts = result["accounts"]
         for id, ciphertext in accounts.items():
-            accounts[id] = json.loads(crypto.decrypt(ciphertext, self.key), encoding="utf-8")
+            accounts[id] = json.loads(
+                crypto.decrypt(ciphertext, self.key), encoding="utf-8"
+            )
         return accounts
 
     def send_push_message(self, message, category, body, **kwargs):
@@ -51,36 +51,37 @@ class Session:
                 "category": category,
                 "mutable-content": 1,
                 "launch-image": "logo",
-                "alert": {
-                    "body": body
-                },
-                "sound": "chime.aiff"
+                "alert": {"body": body},
+                "sound": "chime.aiff",
             },
             "sessionID": self.id,
-            "data": message
+            "data": message,
         }
-        gcm_payload = {
-            "data": {
-                "sessionID": self.id,
-                "message": message
-            }
-        }
-        title = kwargs.get('title', None)
+        gcm_payload = {"data": {"sessionID": self.id, "message": message}}
+        title = kwargs.get("title", None)
         if title:
             apns_payload["aps"]["alert"]["title"] = title
-        data = json.dumps({
-            "APNS_SANDBOX" if self.env == "dev" else "APNS": json.dumps(apns_payload),
-            "GCM": json.dumps(gcm_payload)
-        })
+        data = json.dumps(
+            {
+                "APNS_SANDBOX"
+                if self.env == "dev"
+                else "APNS": json.dumps(apns_payload),
+                "GCM": json.dumps(gcm_payload),
+            }
+        )
         api.send_to_sns(self.signing_keypair, data, self.arn, self.env)
 
     def send_request(self, request):
         request = crypto.encrypt(json.dumps(request).encode("utf-8"), self.key)
-        self.send_push_message(request, "PASSWORD_REQUEST", "Open to authorize", title="Login request")
+        self.send_push_message(
+            request, "PASSWORD_REQUEST", "Open to authorize", title="Login request"
+        )
         response = self.volatile_queue_handler.start(True)[0]
         message = response["body"]
         message = json.loads(crypto.decrypt(message, self.key), encoding="utf-8")
-        api.delete_from_volatile_queue(self.signing_keypair, response["receiptHandle"], self.env)
+        api.delete_from_volatile_queue(
+            self.signing_keypair, response["receiptHandle"], self.env
+        )
         return message
 
     def end(self):
@@ -93,7 +94,7 @@ class Session:
     def get():
         session_path = "%s/session" % click.get_app_dir(APP_NAME)
         if path.exists(session_path):
-            with open(session_path, 'rb') as f:
+            with open(session_path, "rb") as f:
                 session = pickle.load(f)
                 f.close()
                 return session
@@ -102,7 +103,7 @@ class Session:
     def pair():
         pairing_path = "%s/pairing" % click.get_app_dir(APP_NAME)
         if path.exists(pairing_path):
-            with open(pairing_path, 'rb') as f:
+            with open(pairing_path, "rb") as f:
                 pairing = pickle.load(f)
                 seed = pairing["seed"]
                 priv_key = pairing["priv_key"]
@@ -114,31 +115,38 @@ class Session:
             priv_key, pub_key = crypto.generate_keypair()
             pairing_keypair = crypto.create_signing_keypair(seed)
             api.create_pairing_queue(pairing_keypair)
-            with open(pairing_path, 'wb') as f:
+            with open(pairing_path, "wb") as f:
                 pickle.dump({"seed": seed, "priv_key": priv_key, "pub_key": pub_key}, f)
                 f.close()
 
-        queue_handler = QueueHandler(pairing_keypair, 'pairing')
+        queue_handler = QueueHandler(pairing_keypair, "pairing")
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_H,
             box_size=4,
             border=2,
         )
-        qr.add_data('https://chiff.app/pair?%s' % urlencode({"p": pub_key,
-                                                           "q": crypto.to_base64(seed),
-                                                           "b": "cli",
-                                                           "o": platform.node(),
-                                                           "v": 1}))
+        qr.add_data(
+            "https://chiff.app/pair?%s"
+            % urlencode(
+                {
+                    "p": pub_key,
+                    "q": crypto.to_base64(seed),
+                    "b": "cli",
+                    "o": platform.node(),
+                    "v": 1,
+                }
+            )
+        )
         qr.make()
         qr.print_ascii()
         done = False
 
         def animate():
-            for c in itertools.cycle(['|', '/', '-', '\\']):
+            for c in itertools.cycle(["|", "/", "-", "\\"]):
                 if done:
                     break
-                sys.stdout.write('\rWaiting for pairing ' + c)
+                sys.stdout.write("\rWaiting for pairing " + c)
                 sys.stdout.flush()
                 time.sleep(0.1)
 
@@ -154,9 +162,17 @@ class Session:
         if message["type"] != 0 or pub_key != message["browserPubKey"]:
             raise Exception("Pairing error")
         shared_key = crypto.generate_shared_key(message["pubKey"], priv_key)
-        session = Session(shared_key, message["sessionID"], message["userID"], message["version"], message["os"],
-                          message["appVersion"], message["environment"], message["arn"])
-        with open("%s/session" % click.get_app_dir(APP_NAME), 'wb') as f:
+        session = Session(
+            shared_key,
+            message["sessionID"],
+            message["userID"],
+            message["version"],
+            message["os"],
+            message["appVersion"],
+            message["environment"],
+            message["arn"],
+        )
+        with open("%s/session" % click.get_app_dir(APP_NAME), "wb") as f:
             pickle.dump(session, f)
             f.close()
         api.delete_pairing_queue(pairing_keypair)
