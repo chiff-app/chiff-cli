@@ -17,7 +17,7 @@ def seed():
     pass
 
 
-@seed.command()
+@seed.command(short_help="Generate a new Chiff seed.")
 @click.option("-m", "--mnemonic", nargs=12, help="The 12-word mnemonic")
 def create(mnemonic):
     if mnemonic:
@@ -31,7 +31,9 @@ def create(mnemonic):
     click.echo("\nPlease write it down and store it in a safe place.")
 
 
-@seed.command(name="recover")
+@seed.command(
+    name="recover", short_help="Recover the backup accounts from a Chiff seed."
+)
 @click.option("-m", "--mnemonic", nargs=12, help="The 12-word mnemonic")
 @click.option(
     "-f",
@@ -114,7 +116,9 @@ def export_accounts(mnemonic, format, path):
         click.echo("Account export completed!")
 
 
-@seed.command(name="import")
+@seed.command(
+    name="import", short_help="Load accounts from a csv or kdbx file to a Chiff seed."
+)
 @click.option("-m", "--mnemonic", nargs=12, help="The 12-word mnemonic")
 @click.option(
     "-f",
@@ -198,7 +202,9 @@ def import_accounts(mnemonic, format, path):
         )
 
 
-@seed.command(name="delete")
+@seed.command(
+    name="delete", short_help="Delete a seed and all its associated accounts?"
+)
 @click.option(
     "-m",
     "--mnemonic",
@@ -217,12 +223,15 @@ def delete_accounts(mnemonic):
     click.echo("The seed was successfully deleted.")
 
 
-@seed.group()
+@seed.group(
+    short_help="Set of operations to be executed directly on a single account on a seed. "
+    "Run `chiff seed account --help` to show commands"
+)
 def account():
     pass
 
 
-@account.command(name="create")
+@account.command(name="create", short_help="Create an account on a seed")
 @click.option("-m", "--mnemonic", nargs=12, help="The 12-word mnemonic")
 def create_account(mnemonic):
     if mnemonic:
@@ -252,9 +261,9 @@ def create_account(mnemonic):
     print("Account succesfully updated!")
 
 
-@account.command(name="edit")
+@account.command(name="edit", short_help="Update an account on a seed")
 @click.option("-m", "--mnemonic", nargs=12, help="The 12-word mnemonic")
-@click.option("-id", help="The id of the account you want to edit.")
+@click.option("-i", "--id", help="The id of the account you want to edit.")
 def edit_account(mnemonic, id):
     if mnemonic:
         seed = crypto.recover(mnemonic)
@@ -336,9 +345,9 @@ def edit_account(mnemonic, id):
     )
 
 
-@account.command(name="delete")
+@account.command(name="delete", short_help="Delete an account on a seed")
 @click.option("-m", "--mnemonic", nargs=12, help="The 12-word mnemonic")
-@click.option("-id", help="The id of the account you want to edit / delete.")
+@click.option("-i", "--id", help="The id of the account you want to edit / delete.")
 def delete_account(mnemonic, id):
     if mnemonic:
         seed = crypto.recover(mnemonic)
