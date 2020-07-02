@@ -2,11 +2,11 @@ from chiff import api, crypto
 
 
 class QueueHandler:
-    def __init__(self, keypair, endpoint):
+    def __init__(self, keypair, env, endpoint):
         self.keypair = keypair
         self.url = "%s/%s/%s/%s/%s" % (
             api.API_URL,
-            api.ENV,
+            api.get_endpoint(env),
             "sessions",
             crypto.to_base64(keypair.verify_key.__bytes__()),
             endpoint,

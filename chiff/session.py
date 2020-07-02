@@ -27,8 +27,10 @@ class Session:
         self.arn = arn
         signing_keypair = crypto.create_signing_keypair(key)
         self.signing_keypair = signing_keypair
-        self.volatile_queue_handler = QueueHandler(signing_keypair, "volatile")
-        self.persistent_queue_handler = QueueHandler(signing_keypair, "app-to-browser")
+        self.volatile_queue_handler = QueueHandler(signing_keypair, env, "volatile")
+        self.persistent_queue_handler = QueueHandler(
+            signing_keypair, env, "app-to-browser"
+        )
 
     def get_accounts(self):
         result = api.get_session_data(self.signing_keypair, self.env)
@@ -119,7 +121,7 @@ class Session:
                 pickle.dump({"seed": seed, "priv_key": priv_key, "pub_key": pub_key}, f)
                 f.close()
 
-        queue_handler = QueueHandler(pairing_keypair, "pairing")
+        queue_handler = QueueHandler(pairing_keypair, "dev", "pairing")
         qr = qrcode.QRCode(
             version=1,
             error_correction=qrcode.constants.ERROR_CORRECT_H,
