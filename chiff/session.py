@@ -42,9 +42,10 @@ class Session:
                 f.close()
         accounts = result["accounts"]
         for id, ciphertext in accounts.items():
-            accounts[id] = json.loads(
-                crypto.decrypt(ciphertext, self.key), encoding="utf-8"
-            )
+            account = json.loads(crypto.decrypt(ciphertext, self.key), encoding="utf-8")
+            if "id" not in account:
+                account["id"] = id
+            accounts[id] = account
         return accounts
 
     def send_push_message(self, message, category, body, **kwargs):
@@ -141,7 +142,7 @@ class Session:
             )
         )
         qr.make()
-        qr.print_ascii()
+        qr.print_ascii(tty=True)
         done = False
 
         def animate():
