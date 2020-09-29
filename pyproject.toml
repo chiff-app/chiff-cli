@@ -18,6 +18,8 @@ importlib-resources = "^2.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.4"
+flake8 = "^3.8.3"
+black = {version = "^20.8b1", allow-prereleases = true}
 
 [tool.poetry.scripts]
 chiff = "chiff.main:main"
