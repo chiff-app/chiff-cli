@@ -10,6 +10,7 @@ import nacl.utils
 import tldextract
 from nacl.hash import sha256, blake2b
 import nacl.public
+import zlib
 
 try:
     import importlib.resources as pkg_resources
@@ -27,11 +28,10 @@ PASSWORD_CONTEXT = "keynpass"
 TEAM_CONTEXT = "teamseed"
 PASSWORD_KEY_INDEX = 0
 BACKUP_KEY_INDEX = 1
-WORD_LIST = pkg_resources.read_text("chiff", "wordlist.txt")
 
 
-def random_example_seed():
-    words = WORD_LIST.splitlines()
+def random_example_seed(lang="en"):
+    words = get_word_list(lang)
     return tuple(
         map(lambda i: words[i], [secrets.randbelow(2048) for _ in range(1, 13)])
     )
@@ -41,7 +41,7 @@ def generate_seed(size=SEED_SIZE):
     return nacl.utils.random(size)
 
 
-def mnemonic(seed):
+def mnemonic(seed, lang="en"):
     hash = sha256(seed, encoder=nacl.encoding.RawEncoder)
     bitstring = reduce((lambda x, y: x + y), map(lambda x: bin(x)[2:].zfill(8), seed))
     bitstring += bin(hash[0])[2:].zfill(8)[:4]
@@ -49,12 +49,12 @@ def mnemonic(seed):
         lambda x: int(x, 2),
         [bitstring[start : start + 11] for start in range(0, len(bitstring), 11)],
     )
-    words = WORD_LIST.splitlines()
+    words = get_word_list(lang)
     return map(lambda i: words[i], indices)
 
 
-def recover(mnemonic):
-    words = WORD_LIST.splitlines()
+def recover(mnemonic, lang):
+    words = get_word_list(lang)
     bitstring = reduce(
         (lambda x, y: x + y),
         map(lambda x: bin(words.index(x.strip()))[2:].zfill(11), mnemonic),
@@ -113,14 +113,17 @@ def verify(message64, pub_key: nacl.signing.VerifyKey):
 
 def encrypt_symmetric(message, key: nacl.secret.SecretBox):
     return (
-        key.encrypt(message, encoder=nacl.encoding.URLSafeBase64Encoder)
+        key.encrypt(zlib.compress(message), encoder=nacl.encoding.URLSafeBase64Encoder)
         .decode("utf-8")
         .rstrip("=")
     )
 
 
 def decrypt_symmetric(message, key: nacl.secret.SecretBox):
-    return key.decrypt(add_padding(message), encoder=nacl.encoding.URLSafeBase64Encoder)
+    compressed = key.decrypt(
+        add_padding(message), encoder=nacl.encoding.URLSafeBase64Encoder
+    )
+    return zlib.decompress(compressed)
 
 
 def encrypt(message, key):
@@ -255,6 +258,16 @@ def unpad(encoded_bytes):
             pad_size = idx + 1
             break
     return encoded_bytes[:-pad_size]
+
+
+def get_word_list(lang):
+    if lang == "en":
+        words = pkg_resources.read_text("chiff", "wordlist_en.txt")
+    elif lang == "nl":
+        words = pkg_resources.read_text("chiff", "wordlist_nl.txt")
+    else:
+        raise ValueError("Wrong language")
+    return words.splitlines()
 
 
 def get_site_ids(url):

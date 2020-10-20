@@ -53,7 +53,8 @@ def unpair():
 
 
 @main.command(
-    short_help="Get data from a currently paired device. Only returns the password by default"
+    short_help="Get data from a currently paired device."
+    "Only returns the password by default"
 )
 @click.option(
     "-i", "--id", required=True, help="The id of the account you want the data for"
@@ -63,8 +64,8 @@ def unpair():
     "-j",
     "--format-json",
     is_flag=True,
-    help='Return account in JSON format ({ "username": "example", "password": "secret", '
-    '"notes": "important note" | undefined })',
+    help='Return account in JSON format ({ "username": "example",'
+    ' "password": "secret",  "notes": "important note" | undefined })',
 )
 @click.option(
     "-s",
@@ -133,7 +134,8 @@ def get(id, notes, format_json, skip):
 @click.option(
     "-p",
     "--password",
-    help="The password of the account you want to add. Will be prompted for if not provided",
+    help="The password of the account you want to add. Will be prompted"
+    "for if not provided",
 )
 @click.option("-n", "--notes", help="The notes of the account you want to add")
 def add(username, url, name, password, notes):
@@ -188,7 +190,8 @@ def add(username, url, name, password, notes):
 @click.option(
     "-p",
     "--password",
-    help="The password of the account you want to update. Will be prompted for if argument is not provided",
+    help="The password of the account you want to update. Will be prompted for if "
+    "argument is not provided",
 )
 @click.option("-n", "--notes", help="The notes of the account you want to update")
 def update(id, username, url, name, password, notes):
@@ -230,7 +233,8 @@ def update(id, username, url, name, password, notes):
 
 
 @main.command(
-    short_help="Shows the status of the current session and an overview of all accounts."
+    short_help="Shows the status of the current session and an overview "
+    "of all accounts."
 )
 def status():
     """Shows the status of the current session and an overview of all accounts."""

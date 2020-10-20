@@ -48,13 +48,19 @@ def create(mnemonic):
     type=click.Path(writable=True, allow_dash=True),
     help="The path to where the file should be written to.",
 )
-def export_accounts(mnemonic, format, path):
-    if path is not "-":
+@click.option(
+    "-l",
+    "--language",
+    type=click.Choice(["en", "nl"]),
+    help="The language of the mnemonic. Currently supported: en or nl.",
+)
+def export_accounts(mnemonic, format, path, language):
+    if path != "-":
         click.echo("Starting account export...")
     if mnemonic:
-        seed = crypto.recover(mnemonic)
+        seed = crypto.recover(mnemonic, language)
     else:
-        seed = crypto.recover(obtain_mnemonic())
+        seed = crypto.recover(obtain_mnemonic(), language)
 
     password_key, signing_keypair, decryption_key = crypto.derive_keys_from_seed(seed)
     encrypted_accounts_data = api.get_backup_data(signing_keypair)
@@ -124,8 +130,8 @@ def export_accounts(mnemonic, format, path):
     "-f",
     "--format",
     type=click.Choice(["csv", "json", "kdbx"]),
-    help="The input format. If data is written to a .kdbx database, the path to an existing "
-    ".kdbx database file needs to be provided with -p.",
+    help="The input format. If data is written to a .kdbx database, the path to an"
+    "existing .kdbx database file needs to be provided with -p.",
     required=True,
 )
 @click.option(
@@ -224,8 +230,8 @@ def delete_accounts(mnemonic):
 
 
 @seed.group(
-    short_help="Set of operations to be executed directly on a single account on a seed. "
-    "Run `chiff seed account --help` to show commands"
+    short_help="Set of operations to be executed directly on a single account on a "
+    "seed. Run `chiff seed account --help` to show commands"
 )
 def account():
     pass

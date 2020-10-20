@@ -1,1 +1,2 @@
-include chiff/wordlist.txt
+include chiff/wordlist_en.txt
+include chiff/wordlist_nl.txt

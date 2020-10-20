@@ -6,7 +6,7 @@ import requests
 from chiff import crypto
 
 API_URL = "https://api.chiff.dev"
-ENV = "dev"
+ENV = "v1"
 
 
 def create_pairing_queue(keypair):
