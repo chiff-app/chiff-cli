@@ -94,7 +94,7 @@ def create_backup_data(keypair):
     pub_key, params, headers = sign_request(
         {"httpMethod": "POST", "userId": crypto.user_id(keypair), "os": "cli"}, keypair
     )
-    url = "%s/%s/%s/%s/%s" % (API_URL, ENV, "users", pub_key, "accounts")
+    url = "%s/%s/%s/%s" % (API_URL, ENV, "users", pub_key)
     response = requests.post(url, params=params, headers=headers)
     if response:
         return response.json()

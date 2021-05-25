@@ -34,7 +34,7 @@ class Session:
 
     def get_accounts(self):
         result = api.get_session_data(self.signing_keypair, self.env)
-        data = json.loads(crypto.decrypt(result["data"], self.key), encoding="utf-8")
+        data = json.loads(crypto.decrypt(result["data"], self.key))
         if data["appVersion"] != self.app_version:
             self.app_version = data["appVersion"]
             with open("%s/session" % click.get_app_dir(APP_NAME), "wb") as f:
@@ -42,7 +42,7 @@ class Session:
                 f.close()
         accounts = result["accounts"]
         for id, ciphertext in accounts.items():
-            account = json.loads(crypto.decrypt(ciphertext, self.key), encoding="utf-8")
+            account = json.loads(crypto.decrypt(ciphertext, self.key))
             if "id" not in account:
                 account["id"] = id
             accounts[id] = account
@@ -81,7 +81,7 @@ class Session:
         )
         response = self.volatile_queue_handler.start(True)[0]
         message = response["body"]
-        message = json.loads(crypto.decrypt(message, self.key), encoding="utf-8")
+        message = json.loads(crypto.decrypt(message, self.key))
         api.delete_from_volatile_queue(
             self.signing_keypair, response["receiptHandle"], self.env
         )
@@ -165,11 +165,14 @@ class Session:
         if message["type"] != 0 or pub_key != message["browserPubKey"]:
             raise Exception("Pairing error")
         shared_key = crypto.generate_shared_key(message["pubKey"], priv_key)
+        version = 1
+        if "version" in message:
+            version = message["version"]
         session = Session(
             shared_key,
             message["sessionID"],
             message["userID"],
-            message["version"],
+            version,
             message["os"],
             message["appVersion"],
             message["environment"],
