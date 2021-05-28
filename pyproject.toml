@@ -3,6 +3,13 @@ name = "chiff"
 version = "0.1.0"
 description = "Chiff command-line client."
 authors = ["bas-d <7903735+bas-d@users.noreply.github.com>"]
+license = "GNU LGPLv3"
+readme = "README.md"
+homepage = "https://chiff.dev"
+repository = "https://github.com/chiff-app/chiff-cli"
+include = [
+    "LICENSE"
+]
 
 [tool.poetry.dependencies]
 python = "^3.7"
