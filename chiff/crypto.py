@@ -1,5 +1,3 @@
-import secrets
-from functools import reduce
 from urllib.parse import urlparse
 from math import ceil
 
@@ -12,88 +10,7 @@ from nacl.hash import sha256, blake2b
 import nacl.public
 import zlib
 
-try:
-    import importlib.resources as pkg_resources
-except ImportError:
-    import importlib_resources as pkg_resources
-
-    # Try backported to PY<37 `importlib_resources`.
-
-
-SEED_SIZE = 16
 PADDING_BLOCK_SIZE = 200
-SEED_CONTEXT = "keynseed"
-BACKUP_CONTEXT = "keynback"
-PASSWORD_CONTEXT = "keynpass"
-TEAM_CONTEXT = "teamseed"
-PASSWORD_KEY_INDEX = 0
-BACKUP_KEY_INDEX = 1
-
-
-def random_example_seed(lang="en"):
-    words = get_word_list(lang)
-    return tuple(
-        map(lambda i: words[i], [secrets.randbelow(2048) for _ in range(1, 13)])
-    )
-
-
-def generate_seed(size=SEED_SIZE):
-    return nacl.utils.random(size)
-
-
-def mnemonic(seed, lang="en"):
-    hash = sha256(seed, encoder=nacl.encoding.RawEncoder)
-    bitstring = reduce((lambda x, y: x + y), map(lambda x: bin(x)[2:].zfill(8), seed))
-    bitstring += bin(hash[0])[2:].zfill(8)[:4]
-    indices = map(
-        lambda x: int(x, 2),
-        [bitstring[start : start + 11] for start in range(0, len(bitstring), 11)],
-    )
-    words = get_word_list(lang)
-    return map(lambda i: words[i], indices)
-
-
-def recover(mnemonic, lang):
-    words = get_word_list(lang)
-    bitstring = reduce(
-        (lambda x, y: x + y),
-        map(lambda x: bin(words.index(x.strip()))[2:].zfill(11), mnemonic),
-    )
-    checksum = bitstring[-4:]
-    bitstring = bitstring[:-4]
-    seed = bytes(
-        map(
-            lambda x: int(x, 2),
-            [bitstring[start : start + 8] for start in range(0, len(bitstring), 8)],
-        )
-    )
-    hash = bin(sha256(seed, encoder=nacl.encoding.RawEncoder)[0])[2:].zfill(8)[:4]
-    if hash == checksum:
-        return seed
-    else:
-        raise Exception("Invalid mnemonic")
-
-
-def derive_keys_from_seed(seed):
-    seed_hash = generic_hash(seed)
-    password_key = kdf_derive_from_key(seed, PASSWORD_KEY_INDEX, SEED_CONTEXT)
-    backup_key = kdf_derive_from_key(seed_hash, BACKUP_KEY_INDEX, SEED_CONTEXT)
-    return (
-        password_key,
-        nacl.signing.SigningKey(backup_key),
-        nacl.secret.SecretBox(kdf_derive_from_key(backup_key, 0, BACKUP_CONTEXT)),
-    )
-
-
-def derive_keys_from_team_seed(seed):
-    password_key = kdf_derive_from_key(seed, PASSWORD_KEY_INDEX, TEAM_CONTEXT)
-    backup_key = kdf_derive_from_key(seed, BACKUP_KEY_INDEX, TEAM_CONTEXT)
-
-    return (
-        password_key,
-        nacl.signing.SigningKey(backup_key),
-        nacl.secret.SecretBox(kdf_derive_from_key(backup_key, 0, TEAM_CONTEXT)),
-    )
 
 
 def sign(message, signing_key: nacl.signing.SigningKey):
@@ -179,47 +96,6 @@ def generic_hash_string(string):
     )
 
 
-def kdf_derive_from_key(data, index, context):
-    return blake2b(
-        b"",
-        key=data,
-        salt=index.to_bytes(16, byteorder="little"),
-        person=context.encode("utf-8"),
-        encoder=nacl.encoding.RawEncoder,
-    )
-
-
-def password_key(seed, site_id, index, username, version):
-    site_hash = sha256(
-        site_id.encode("utf-8"),
-        encoder=nacl.encoding.HexEncoder if version == 0 else nacl.encoding.RawEncoder,
-    )[:8]
-    username_hash = sha256(
-        username.encode("utf-8"),
-        encoder=nacl.encoding.HexEncoder
-        if version == 0
-        else nacl.encoding.URLSafeBase64Encoder,
-    )[:8]
-    site_key = blake2b(
-        b"",
-        key=seed,
-        salt=site_hash,
-        person=PASSWORD_CONTEXT.encode("utf-8"),
-        encoder=nacl.encoding.RawEncoder,
-    )
-    return blake2b(
-        b"",
-        key=site_key,
-        salt=index.to_bytes(16, byteorder="little"),
-        person=username_hash,
-        encoder=nacl.encoding.RawEncoder,
-    )
-
-
-def deterministic_random_bytes(seed, size):
-    return nacl.utils.randombytes_deterministic(size, seed)
-
-
 def add_padding(string):
     padding = 4 - (len(string) % 4)
     return string + ("=" * padding)
@@ -258,16 +134,6 @@ def unpad(encoded_bytes):
             pad_size = idx + 1
             break
     return encoded_bytes[:-pad_size]
-
-
-def get_word_list(lang):
-    if lang == "en":
-        words = pkg_resources.read_text("chiff", "wordlist_en.txt")
-    elif lang == "nl":
-        words = pkg_resources.read_text("chiff", "wordlist_nl.txt")
-    else:
-        raise ValueError("Wrong language")
-    return words.splitlines()
 
 
 def get_site_ids(url):

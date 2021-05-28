@@ -1,29 +1,4 @@
 import time
-import nacl.encoding
-from chiff import crypto
-from nacl.hash import sha256
-
-
-mnemonic = (
-    "wreck together kick tackle rely embrace enlist bright double happy group hope"
-)
-base64seed = "_jx16O6LVpESsOBBrR2btg"
-linked_in_ppd_handle = (
-    "c53526a0b5fc33cb7d089d53a45a76044ed5f4aea170956d5799d01b2478cdfa"
-)
-
-
-def sample_site():
-    test_ppd = sample_ppd(8, 32)
-    b = "example.com".encode("utf-8")
-    site = {
-        "name": "Example",
-        "id": sha256(b, encoder=nacl.encoding.HexEncoder).decode("utf-8"),
-        "url": "example.com",
-        "ppd": test_ppd,
-    }
-
-    return site
 
 
 def sample_ppd(
@@ -71,9 +46,3 @@ def sample_ppd(
     }
 
     return ppd
-
-
-def derive_password_key():
-    seed = crypto.recover(mnemonic.split(" "))
-    password_key, _, _ = crypto.derive_keys_from_seed(seed)
-    return password_key

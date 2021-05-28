@@ -26,11 +26,13 @@ class PasswordValidator:
             self.characters = OPTIMAL_CHARACTER_SET
 
     def validate(self, password):
-        # Checks if password is less than or equal to maximum length. Relevant for custom passwords.
+        # Checks if password is less than or equal to maximum length.
+        # Relevant for custom passwords.
         if not self.validate_max_length(password):
             return False
 
-        # Checks is password is less than or equal to minimum length. Relevant for custom passwords.
+        # Checks is password is less than or equal to minimum length.
+        # Relevant for custom passwords.
         if not self.validate_min_length(password):
             return False
 
@@ -42,7 +44,8 @@ class PasswordValidator:
         if not self.validate_consecutive_characters(password):
             return False
 
-        # Max consecutive characters. This tests if n characters are an ordered sequence.
+        # Max consecutive characters.
+        # This tests if n characters are an ordered sequence.
         if not self.validate_consecutive_ordered_characters(password):
             return False
 

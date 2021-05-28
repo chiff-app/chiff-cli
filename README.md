@@ -1,26 +1,31 @@
 ## Chiff
+
 This program can be used to retrieve passwords and notes from the Chiff app. In addition, it provides some commands
 to operate directly on chiff seeds.
 
 ### Building
 
-The project can be built using [*poetry*](https://python-poetry.org). 
+The project can be built using [_poetry_](https://python-poetry.org).
 Run `poetry build` to build the source package and wheel binary.
 
 ### Installing
+
 Install the wheel binary with `pip install <wheel binary>`, e.g. `pip install dist/chiff-0.1.0-py3-none-any.whl`.
 This should install the `chiff` script to your shell.
 
 ### Usage
 
 #### Pairing
+
 The first thing you should do is pair with your phone with `chiff pair`. This generate a QR-code that you can scan with
 the Chiff app. After pairing, you can see your accounts with `chiff status`.
-You can pair with one app at the same time, so if you want to pair with another phone, run `chiff unpair` to delete the 
+You can pair with one app at the same time, so if you want to pair with another phone, run `chiff unpair` to delete the
 session.
 
 #### Getting passwords
+
 The Chiff CLI allows you to get passwords and notes from your accounts with `chiff get`. It takes the following arguments:
+
 ```bash
   -i, --id TEXT      The id of the account you want the data for  [required]
   -n, --notes        Return the notes of the account
@@ -28,11 +33,14 @@ The Chiff CLI allows you to get passwords and notes from your accounts with `chi
                      "password": "secret", "notes": "important note" |
                      undefined })
 ```
+
 By default, it just return the password without any extra output, so it can be easily used in scripts.
 The account id is required and can be found by checking the overview with `chiff status`.
 
 #### Adding accounts
+
 Add new accounts with `chiff add`. It takes the following arguments:
+
 ```bash
   -u, --username TEXT  The username of the account you want to add  [required]
   -l, --url TEXT       The URL of the account you want to add  [required]
@@ -41,10 +49,13 @@ Add new accounts with `chiff add`. It takes the following arguments:
                        prompted for if not provided
   -n, --notes TEXT     The notes of the account you want to add
 ```
+
 This will send a request to your phone, where you can authorize the account.
 
 #### Updating accounts
+
 Similarly, you can update existing accounts with `chiff update`.
+
 ```bash
   -i, --id TEXT        The id of the account you want the data for  [required]
   -u, --username TEXT  The username of the account you want to update
@@ -54,28 +65,13 @@ Similarly, you can update existing accounts with `chiff update`.
                        prompted for if argument is not provided
   -n, --notes TEXT     The notes of the account you want to update
 ```
+
 The account id is required and can be found by checking the overview with `chiff status`.
 
-#### Seeds
-The `chiff seed` command offers a set of operations to directly manipulate accounts on a seed.
-All of the command will ask for the 12-word mnemonic, which can also be provided with `-m ` or `--mnemonic`.
-Note that these operations are unrelated to the current session (if there is any).
-The following sub-commands can be used:
-```bash
-  account  Set of operations to be executed directly on a single account on a
-           seed.
-  create   Generate a new Chiff seed.
-  delete   Delete a seed and all its associated accounts?
-  import   Load accounts from a csv or kdbx file to a Chiff seed.
-  recover  Recover the backup accounts from a Chiff seed.
-```
+#### Importing
 
-The account operations are straightforward:
-```bash
-  create  Create an account on a seed
-  delete  Delete an account on a seed
-  edit    Update an account on a seed
-```
-The `delete` and `edit` commands use the `-i` or `--id` parameter, which will be prompted for if not required.
+TODO
 
+#### Exporting
 
+TODO

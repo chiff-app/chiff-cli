@@ -10,11 +10,10 @@ tldextract = "^2.2"
 pykeepass = "^3.2"
 pynacl = "^1.4"
 click = "^7.1"
-pillow = "^8.1"
+pillow = "^8.2"
 requests = "^2.2"
 qrcode = "^6.1"
 tabulate = "^0.8.7"
-importlib-resources = "^2.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.4"
