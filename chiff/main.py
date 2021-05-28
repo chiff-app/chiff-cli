@@ -386,7 +386,7 @@ def get_session(skip):
             return Session.pair()
         else:
             click.echo("Exiting...")
-            return
+            exit(0)
     elif not skip:
         accounts = session.get_accounts()
         return session, accounts

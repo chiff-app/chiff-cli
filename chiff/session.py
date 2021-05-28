@@ -6,7 +6,7 @@ import pickle
 import click
 import json
 from chiff.queue_handler import QueueHandler
-from chiff.constants import APP_NAME
+from chiff.constants import APP_NAME, MessageType
 import itertools
 import threading
 import time
@@ -87,10 +87,22 @@ class Session:
         )
         return message
 
-    def end(self):
-        request = {"r": 7, "z": int(time.time() * 1000)}
-        request = crypto.encrypt(json.dumps(request).encode("utf-8"), self.key)
-        self.send_push_message(request, "END_SESSION", "Session ended by CLI")
+    def pairing_status(self):
+        messages = self.persistent_queue_handler.start(False)
+        for message in messages:
+            decrypted_message = json.loads(crypto.decrypt(message["body"], self.key))
+            if decrypted_message["t"] == MessageType.END.value:
+                self.end(True)
+                return False
+        return True
+
+    def end(self, including_queues=False):
+        if including_queues:
+            api.delete_queues(self.signing_keypair, self.env)
+        else:
+            request = {"r": 7, "z": int(time.time() * 1000)}
+            request = crypto.encrypt(json.dumps(request).encode("utf-8"), self.key)
+            self.send_push_message(request, "END_SESSION", "Session ended by CLI")
         os.remove("%s/session" % click.get_app_dir(APP_NAME))
 
     @staticmethod
@@ -100,7 +112,10 @@ class Session:
             with open(session_path, "rb") as f:
                 session = pickle.load(f)
                 f.close()
-                return session
+                if session.pairing_status():
+                    return session
+                else:
+                    return None
 
     @staticmethod
     def pair():

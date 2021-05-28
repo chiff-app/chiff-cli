@@ -10,7 +10,12 @@ from nacl.hash import sha256, blake2b
 import nacl.public
 import zlib
 
+SEED_SIZE = 16
 PADDING_BLOCK_SIZE = 200
+
+
+def generate_seed(size=SEED_SIZE):
+    return nacl.utils.random(size)
 
 
 def sign(message, signing_key: nacl.signing.SigningKey):

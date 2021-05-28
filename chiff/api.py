@@ -29,6 +29,16 @@ def delete_pairing_queue(keypair):
         raise Exception("Error %d: %s" % (response.status_code, response.text))
 
 
+def delete_queues(keypair, env):
+    pub_key, params, headers = sign_request({"httpMethod": "DELETE"}, keypair)
+    url = "%s/%s/%s/%s" % (API_URL, get_endpoint(env), "sessions", pub_key)
+    response = requests.delete(url, params=params, headers=headers)
+    if response:
+        return response.json()
+    else:
+        raise Exception("Error %d: %s" % (response.status_code, response.text))
+
+
 def get_session_data(keypair, env):
     pub_key, params, headers = sign_request({"httpMethod": "GET"}, keypair)
     url = "%s/%s/%s/%s" % (API_URL, get_endpoint(env), "sessions", pub_key)
