@@ -1,5 +1,6 @@
 from chiff import api, crypto
 from os import path
+from random import randint
 import os
 import qrcode
 import pickle
@@ -75,17 +76,26 @@ class Session:
         api.send_to_sns(self.signing_keypair, data, self.arn, self.env)
 
     def send_request(self, request):
+        request_id = randint(0, 1e9)
+        request["b"] = request_id
+        request["z"] = int(time.time() * 1000)
         request = crypto.encrypt(json.dumps(request).encode("utf-8"), self.key)
         self.send_push_message(
             request, "PASSWORD_REQUEST", "Open to authorize", title="Login request"
         )
-        response = self.volatile_queue_handler.start(True)[0]
-        message = response["body"]
-        message = json.loads(crypto.decrypt(message, self.key))
-        api.delete_from_volatile_queue(
-            self.signing_keypair, response["receiptHandle"], self.env
-        )
-        return message
+        return self.poll_queue(request_id)
+
+    def poll_queue(self, request_id):
+        messages = self.volatile_queue_handler.start(True)
+        for response in messages:
+            message = json.loads(crypto.decrypt(response["body"], self.key))
+            api.delete_from_volatile_queue(
+                self.signing_keypair, response["receiptHandle"], self.env
+            )
+            if message["b"] == request_id:
+                return message
+            else:
+                return self.poll_queue(request_id)
 
     def pairing_status(self):
         messages = self.persistent_queue_handler.start(False)
@@ -95,6 +105,16 @@ class Session:
                 self.end(True)
                 return False
         return True
+
+    def send_bulk_accounts(self, accounts):
+        persistent_message = {"t": MessageType.ADD_BULK.value, "b": accounts}
+        api.send_bulk_accounts(
+            crypto.encrypt(json.dumps(persistent_message).encode("utf-8"), self.key),
+            self.signing_keypair,
+            self.env,
+        )
+        request = {"r": MessageType.ADD_BULK.value, "x": len(accounts)}
+        return self.send_request(request)
 
     def end(self, including_queues=False):
         if including_queues:

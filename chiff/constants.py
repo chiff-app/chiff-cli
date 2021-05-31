@@ -15,7 +15,7 @@ class MessageType(Enum):
     ACKNOWLEDGE = 8
     FILL = 9
     REJECT = 10
-    EXPIRED = 11
+    ERROR = 11
     PREFERENCES = 12
     ADD_TO_EXISTING = 13
     DISABLED = 14

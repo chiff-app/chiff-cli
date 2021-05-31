@@ -1,6 +1,11 @@
 import click
-import time
 import json
+import csv
+import getpass
+
+from pykeepass import PyKeePass
+from construct import ChecksumError
+
 
 from chiff import crypto
 from chiff.constants import MessageType
@@ -76,19 +81,13 @@ def unpair():
 def get(id, notes, format_json, skip):
     """Get data from a currently paired device. Only returns the password by default"""
     session, accounts = get_session(skip)
-    request = {
-        "a": id,
-        "r": 19,
-        "b": MessageType.GET_DETAILS.value,
-        "z": int(time.time() * 1000),
-    }
+    request = {"a": id, "r": MessageType.GET_DETAILS.value}
     if not skip:
         request["n"] = accounts[id]["sites"][0]["name"]
     else:
         request["n"] = "Unknown"
     response = session.send_request(request)
-    if response["t"] == MessageType.REJECT.value:
-        click.echo("Request rejected on phone..")
+    if not check_response(response):
         return
     if notes:
         if "y" in response:
@@ -144,17 +143,13 @@ def add(username, url, name, password, notes):
         "r": MessageType.ADD.value,
         "n": name,
         "l": url,
-        "b": 42,
         "u": username,
         "p": password,
-        "z": int(time.time() * 1000),
     }
     if notes:
         request["y"] = notes
     response = session.send_request(request)
-    if response["t"] == MessageType.REJECT.value:
-        click.echo("Request rejected on phone..")
-    else:
+    if check_response(response):
         click.echo(
             "Account created with id %s"
             % crypto.generic_hash_string(("%s_%s" % (site_id, username)))
@@ -181,8 +176,6 @@ def update(id, username, url, name, password, notes):
     request = {
         "a": id,
         "r": MessageType.UPDATE_ACCOUNT.value,
-        "b": 42,
-        "z": int(time.time() * 1000),
     }
     request["n"] = accounts[id]["sites"][0]["name"]
     if notes:
@@ -196,9 +189,7 @@ def update(id, username, url, name, password, notes):
     if url:
         request["l"] = url
     response = session.send_request(request)
-    if response["t"] == MessageType.REJECT.value:
-        click.echo("Request rejected on phone..")
-    else:
+    if check_response(response):
         click.echo("Account successfully updated.")
 
 
@@ -229,76 +220,6 @@ def status():
         click.echo("There is no active session.")
 
 
-@main.command(name="export", short_help="Export all accounts to a csv or kdbx file.")
-@click.option(
-    "-f",
-    "--format",
-    type=click.Choice(["csv", "json", "kdbx"]),
-    help="The output format. If data is written to a .kdbx database, "
-    "the path to an existing .kdbx database file needs to be provided with -p.",
-    required=True,
-)
-@click.option(
-    "-p",
-    "--path",
-    type=click.Path(writable=True, allow_dash=True),
-    help="The path to where the file should be written to.",
-    required=True,
-)
-def export_accounts(format, path):
-    """Exports all accounts to csv, json or kdbx (KeePass) file."""
-    if path != "-":
-        click.echo("Starting account export...")
-    session, accounts = get_session(False)
-
-    # TODO: Get accounts from session.
-    # if format == "csv":
-    #     with click.open_file(path, mode="w") as file:
-    #         csv_writer = csv.writer(file, delimiter=",", quoting=csv.QUOTE_MINIMAL)
-    #         csv_writer.writerow(["url", "username", "password", "site_name"])
-    #         for account in accounts:
-    #             csv_writer.writerow(
-    #                 [
-    #                     account["url"],
-    #                     account["username"],
-    #                     account["password"],
-    #                     account["site_name"],
-    #                 ]
-    #             )
-    # elif format == "json":
-    #     with click.open_file(path, mode="w") as file:
-    #         json.dump(accounts, file, indent=4)
-    # elif format == "kdbx":
-    #     password = getpass.getpass(
-    #         prompt="Please provide your .kdbx database password: "
-    #     )
-    #     try:
-    #         with PyKeePass(path, password=password) as kp:
-    #             for account in accounts:
-    #                 kp.add_entry(
-    #                     kp.root_group,
-    #                     account["site_name"],
-    #                     account["username"],
-    #                     account["password"],
-    #                     account["url"],
-    #                     "Imported from Keyn",
-    #                 )
-    #             kp.save(path)
-    #     except ChecksumError:
-    #         print("The keepass password appears to be incorrect. Exiting")
-    #         exit(1)
-    # else:
-    #     for account in accounts:
-    #         click.echo("-------------------------")
-    #         click.echo("Id:\t\t%s" % account["id"])
-    #         click.echo("Username:\t%s" % account["username"])
-    #         click.echo("Password:\t%s" % account["password"])
-    #         click.echo("Site:\t\t%s" % account["site_name"])
-    #         click.echo("URL:\t\t%s" % account["url"])
-    #     click.echo("-------------------------")
-    #     click.echo("Account export completed!")
-
-
 @main.command(name="import", short_help="Import accounts from a csv or kdbx file.")
 @click.option(
     "-f",
@@ -315,66 +236,89 @@ def export_accounts(format, path):
     help="The path to where the file should be read from.",
     required=True,
 )
-def import_accounts(format, path):
+@click.option(
+    "-s",
+    "--skip",
+    is_flag=True,
+    help="Whether the first row should be skipped. Only relevant when format is CSV.",
+)
+def import_accounts(format, path, skip):
     """Import accounts from csv, json or kdbx (KeePass) file."""
     click.echo("Starting account import...")
-    session, accounts = get_session(False)
-    # if format == "csv":
-    #     with click.open_file(path, mode="r") as file:
-    #         accounts = csv.DictReader(
-    #             file, fieldnames=["url", "username", "password", "site_name"]
-    #         )
-    #         next(accounts, None)
-    #         with click.progressbar(list(accounts)) as accounts:
-    #             for account in accounts:
-    #                 upload_account_data(
-    #                     account["url"],
-    #                     account["username"],
-    #                     account["password"],
-    #                     account["site_name"],
-    #                     password_key,
-    #                     signing_keypair,
-    #                     encryption_key,
-    #                 )
-    # elif format == "json":
-    #     with click.open_file(path, mode="r") as file:
-    #         with click.progressbar(json.load(file)) as accounts:
-    #             for account in accounts:
-    #                 upload_account_data(
-    #                     account["url"],
-    #                     account["username"],
-    #                     account["password"],
-    #                     account["site_name"],
-    #                     password_key,
-    #                     signing_keypair,
-    #                     encryption_key,
-    #                 )
-    # elif format == "kdbx":
-    #     password = getpass.getpass(
-    #         prompt="Please provide your .kdbx database password: "
-    #     )
-    #     try:
-    #         with PyKeePass(path, password=password) as kp:
-    #             with click.progressbar(kp.entries) as accounts:
-    #                 for account in accounts:
-    #                     upload_account_data(
-    #                         account.url,
-    #                         account.username,
-    #                         account.password,
-    #                         account.title,
-    #                         password_key,
-    #                         signing_keypair,
-    #                         encryption_key,
-    #                     )
-    #     except ChecksumError:
-    #         print("The keepass password appears to be incorrect. Exiting")
-    #         exit(1)
+    session = get_session(False)[0]
+    new_accounts = []
+    if format == "csv":
+        with click.open_file(path, mode="r") as file:
+            accounts = csv.DictReader(
+                file, fieldnames=["site_name", "url", "username", "password", "notes"]
+            )
+            if skip:
+                next(accounts, None)
+            for account in accounts:
+                site_id = crypto.get_site_ids(account["url"])[0]
+                new_accounts.append(
+                    {
+                        "u": account["username"],
+                        "p": account["password"],
+                        "n": account["site_name"],
+                        "s": site_id.decode("utf-8"),
+                        "l": account["url"],
+                        "y": account["notes"],
+                    }
+                )
+    elif format == "json":
+        with click.open_file(path, mode="r") as file:
+            for account in json.load(file):
+                site_id = crypto.get_site_ids(account["url"])[0]
+                new_accounts.append(
+                    {
+                        "u": account["username"],
+                        "p": account["password"],
+                        "n": account["title"],
+                        "s": site_id.decode("utf-8"),
+                        "l": account["url"],
+                        "y": account["notes"],
+                    }
+                )
+    elif format == "kdbx":
+        password = getpass.getpass(
+            prompt="Please provide your .kdbx database password: "
+        )
+        try:
+            with PyKeePass(path, password=password) as kp:
+                for account in kp.entries:
+                    site_id = crypto.get_site_ids(account.url)[0]
+                    new_accounts.append(
+                        {
+                            "u": account.username,
+                            "p": account.password,
+                            "n": account.title,
+                            "s": site_id.decode("utf-8"),
+                            "l": account.url,
+                            "y": account.notes,
+                        }
+                    )
+        except ChecksumError:
+            print("The keepass password appears to be incorrect. Exiting")
+            exit(1)
+    click.echo("Sending %d accounts to phone..." % len(new_accounts))
+    response = session.send_bulk_accounts(new_accounts)
+    if check_response(response):
+        click.echo("%d accounts successfully imported!" % len(new_accounts))
 
-    # click.echo("Your accounts have been uploaded successfully!")
-    # if not mnemonic:
-    #     click.echo(
-    #         "Please write down your mnemonic: %s" % " ".join(crypto.mnemonic(seed))
-    #     )
+
+def check_response(response):
+    if response["t"] == MessageType.REJECT.value:
+        click.echo("Request rejected on phone..")
+        return False
+    elif response["t"] == MessageType.ERROR.value:
+        if "e" in response:
+            click.echo("Request failed: %s." % response["e"])
+            return False
+        else:
+            click.echo("Request failed.")
+            return False
+    return True
 
 
 def get_session(skip):
