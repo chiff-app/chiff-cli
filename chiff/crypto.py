@@ -6,7 +6,7 @@ import nacl.secret
 import nacl.signing
 import nacl.utils
 import tldextract
-from nacl.hash import sha256, blake2b
+from nacl.hash import sha256 as nacl_sha256, blake2b
 import nacl.public
 import zlib
 
@@ -95,6 +95,10 @@ def generic_hash(data):
     return blake2b(data, encoder=nacl.encoding.RawEncoder)
 
 
+def sha256(data):
+    return nacl_sha256(data, encoder=nacl.encoding.HexEncoder).decode("utf-8")
+
+
 def generic_hash_string(string):
     return blake2b(string.encode("utf-8"), encoder=nacl.encoding.HexEncoder).decode(
         "utf-8"
@@ -112,13 +116,15 @@ def user_id(key):
         .decode("utf-8")
         .rstrip("=")
     )
-    return sha256(pubkey.encode("utf-8"), encoder=nacl.encoding.HexEncoder).decode(
-        "utf-8"
-    )
+    return sha256(pubkey.encode("utf-8")).decode("utf-8")
 
 
 def to_base64(data):
     return nacl.encoding.URLSafeBase64Encoder.encode(data).decode("utf-8").rstrip("=")
+
+
+def to_default_base64(data):
+    return nacl.encoding.Base64Encoder.encode(data).decode("utf-8")
 
 
 def from_base64(str):
@@ -157,8 +163,7 @@ def get_site_ids(url):
                 + extracted_domain.domain
                 + "."
                 + extracted_domain.suffix
-            ).encode("utf-8"),
-            encoder=nacl.encoding.HexEncoder,
+            ).encode("utf-8")
         )
     else:
         full_domain = sha256(
@@ -170,8 +175,7 @@ def get_site_ids(url):
                 + extracted_domain.domain
                 + "."
                 + extracted_domain.suffix
-            ).encode("utf-8"),
-            encoder=nacl.encoding.HexEncoder,
+            ).encode("utf-8")
         )
         top_domain = sha256(
             (
@@ -180,8 +184,7 @@ def get_site_ids(url):
                 + extracted_domain.domain
                 + "."
                 + extracted_domain.suffix
-            ).encode("utf-8"),
-            encoder=nacl.encoding.HexEncoder,
+            ).encode("utf-8")
         )
 
     return full_domain, top_domain

@@ -1,3 +1,4 @@
+from chiff.ssh_key import Key, KeyType
 from chiff import api, crypto
 from os import path
 from random import randint
@@ -33,7 +34,31 @@ class Session:
             signing_keypair, env, "app-to-browser"
         )
 
+    def get_ssh_identities(self):
+        return [
+            Key(
+                account["id"],
+                crypto.from_base64(account["pubKey"]),
+                KeyType(account["algorithm"]),
+                account["name"],
+            )
+            for account in self.get_session_data().values()
+            if "type" in account and account["type"] == "ssh"
+        ]
+
+    def get_ssh_identity(self, pubkey, key_type):
+        for identity in self.get_ssh_identities():
+            if identity.pubkey == pubkey and identity.key_type is key_type:
+                return identity
+
     def get_accounts(self):
+        return [
+            account
+            for account in self.get_session_data().values()
+            if "type" not in account or account["type"] == "account"
+        ]
+
+    def get_session_data(self):
         result = api.get_session_data(self.signing_keypair, self.env)
         data = json.loads(crypto.decrypt(result["data"], self.key))
         if data["appVersion"] != self.app_version:
@@ -41,13 +66,13 @@ class Session:
             with open("%s/session" % click.get_app_dir(APP_NAME), "wb") as f:
                 pickle.dump(self, f)
                 f.close()
-        accounts = result["accounts"]
-        for id, ciphertext in accounts.items():
-            account = json.loads(crypto.decrypt(ciphertext, self.key))
-            if "id" not in account:
-                account["id"] = id
-            accounts[id] = account
-        return accounts
+        objects = result["accounts"]
+        for id, ciphertext in objects.items():
+            object = json.loads(crypto.decrypt(ciphertext, self.key))
+            if "id" not in object:
+                object["id"] = id
+            objects[id] = object
+        return objects
 
     def send_push_message(self, message, category, body, **kwargs):
         apns_payload = {

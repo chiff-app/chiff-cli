@@ -1,3 +1,4 @@
+from chiff.utils import check_response
 import click
 import json
 import csv
@@ -202,7 +203,7 @@ def status():
     session = Session.get()
     if session:
         click.echo("There is an active session with id %s.\n" % session.id)
-        click.echo("Accounts:\n")
+        click.echo("Accounts:")
         accounts = list(
             map(
                 lambda x: {
@@ -211,11 +212,20 @@ def status():
                     "name": x["sites"][0]["name"],
                     "URL": x["sites"][0]["url"],
                 },
-                session.get_accounts().values(),
+                session.get_accounts(),
             )
         )
         print(tabulate(accounts, headers="keys", tablefmt="psql"))
         click.echo("")
+        identities = list(
+            map(
+                lambda x: {"key": str(x)},
+                session.get_ssh_identities(),
+            )
+        )
+        if len(identities) > 0:
+            click.echo("SSH keys:")
+            print(tabulate(identities, headers="keys", tablefmt="psql"))
     else:
         click.echo("There is no active session.")
 
@@ -307,18 +317,31 @@ def import_accounts(format, path, skip):
         click.echo("%d accounts successfully imported!" % len(new_accounts))
 
 
-def check_response(response):
-    if response["t"] == MessageType.REJECT.value:
-        click.echo("Request rejected on phone..")
-        return False
-    elif response["t"] == MessageType.ERROR.value:
-        if "e" in response:
-            click.echo("Request failed: %s." % response["e"])
-            return False
-        else:
-            click.echo("Request failed.")
-            return False
-    return True
+@main.command(name="ssh-keygen", short_help="Generate a new SSH key on your phone.")
+@click.option("-n", "--name", required=True, help="The label for this SSH key.")
+@click.option(
+    "-e",
+    "--enclave",
+    is_flag=True,
+    help="Whether the key should be created in the Secure Enclave (only applies to iOS). \
+        This implies that you will be unable to recover the key with your seed!",
+)
+def create_ssh_key(name, enclave):
+    click.echo("Requesting to generate new SSH key %s" % name)
+    session = get_session(False)[0]
+    request = {
+        "r": MessageType.SSH_CREATE.value,
+        "n": name,
+    }
+    if enclave:
+        request["g"] = [-7]  # Cose identifier for ECDSA256
+    else:
+        request["g"] = [-8]  # Cose identifier for EdDSA
+    response = session.send_request(request)
+    if check_response(response):
+        click.echo("SSH key created!")
+        click.echo("Fingerprint: %s" % response["a"])
+        click.echo("Public key: %s" % response["pk"])
 
 
 def get_session(skip):
