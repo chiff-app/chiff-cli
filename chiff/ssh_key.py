@@ -1,10 +1,12 @@
-from chiff.crypto import to_default_base64
+from chiff.crypto import sha256_data, to_default_base64
 from chiff.utils import length_and_data
 from enum import Enum, unique
 
 
 @unique
 class KeyType(Enum):
+    """A SSH key type."""
+
     ECDSA256 = "ecdsa-sha2-nistp256"
     ED25519 = "ssh-ed25519"
 
@@ -21,6 +23,8 @@ class KeyType(Enum):
 
 
 class Key(object):
+    """A SSH key."""
+
     def __init__(self, id, pubkey, key_type, name):
         self.id = id
         self.pubkey = pubkey
@@ -28,7 +32,7 @@ class Key(object):
         self.name = name
 
     def ssh_identity(self):
-        return length_and_data(self.key_blob()) + length_and_data(
+        return length_and_data(self.__key_blob()) + length_and_data(
             bytes(self.name, "utf-8")
         )
 
@@ -42,7 +46,12 @@ class Key(object):
             signature_data += length_and_data(signature)
         return length_and_data(signature_data)
 
-    def key_blob(self):
+    def fingerprint(self):
+        return "SHA256:%s" % to_default_base64(sha256_data(self.__key_blob())).rstrip(
+            "="
+        )
+
+    def __key_blob(self):
         if self.key_type is KeyType.ECDSA256:
             return (
                 length_and_data(KeyType.ECDSA256.raw)
@@ -55,6 +64,6 @@ class Key(object):
     def __str__(self):
         return "%s %s %s" % (
             self.key_type.value,
-            to_default_base64(self.key_blob()),
+            to_default_base64(self.__key_blob()),
             self.name,
         )

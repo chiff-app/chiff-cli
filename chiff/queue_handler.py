@@ -2,6 +2,8 @@ from chiff import api, crypto
 
 
 class QueueHandler:
+    """A QueueHandler for polling a SQS queue."""
+
     def __init__(self, keypair, env, endpoint):
         self.keypair = keypair
         self.url = "%s/%s/%s/%s/%s" % (
@@ -13,6 +15,7 @@ class QueueHandler:
         )
 
     def start(self, indefinite):
+        """Start checking messages on this queue."""
         result = api.get_from_sqs(self.keypair, self.url, 20 if indefinite else 0)
         messages = result["messages"]
         if result and len(messages) > 0:

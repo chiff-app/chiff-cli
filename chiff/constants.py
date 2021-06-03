@@ -1,6 +1,7 @@
 from enum import Enum
 
 APP_NAME = "Chiff"
+FILE_NAME = "chiff-socket.ssh"
 
 
 class MessageType(Enum):

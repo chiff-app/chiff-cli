@@ -18,6 +18,8 @@ from urllib.parse import urlencode
 
 
 class Session:
+    """A session with an app. Handles all communication with the app."""
+
     def __init__(self, key, session_id, user_id, version, os, app_version, env, arn):
         self.key = key
         self.id = session_id
@@ -35,30 +37,34 @@ class Session:
         )
 
     def get_ssh_identities(self):
+        """Get all SSH identies for this session."""
         return [
             Key(
-                account["id"],
-                crypto.from_base64(account["pubKey"]),
-                KeyType(account["algorithm"]),
-                account["name"],
+                identity["id"],
+                crypto.from_base64(identity["pubKey"]),
+                KeyType(identity["algorithm"]),
+                identity["name"],
             )
-            for account in self.get_session_data().values()
-            if "type" in account and account["type"] == "ssh"
+            for identity in self.get_session_data().values()
+            if "type" in identity and identity["type"] == "ssh"
         ]
 
     def get_ssh_identity(self, pubkey, key_type):
+        """Get a single SSH identity. Returns `None` if it can't be found."""
         for identity in self.get_ssh_identities():
             if identity.pubkey == pubkey and identity.key_type is key_type:
                 return identity
 
     def get_accounts(self):
-        return [
-            account
-            for account in self.get_session_data().values()
+        """Get all accounts for this session"""
+        return dict(
+            (id, account)
+            for id, account in self.get_session_data().items()
             if "type" not in account or account["type"] == "account"
-        ]
+        )
 
     def get_session_data(self):
+        """Get all session objects (account or SSH identities)."""
         result = api.get_session_data(self.signing_keypair, self.env)
         data = json.loads(crypto.decrypt(result["data"], self.key))
         if data["appVersion"] != self.app_version:
@@ -75,6 +81,7 @@ class Session:
         return objects
 
     def send_push_message(self, message, category, body, **kwargs):
+        """Send a push message to the phone."""
         apns_payload = {
             "aps": {
                 "category": category,
@@ -101,6 +108,7 @@ class Session:
         api.send_to_sns(self.signing_keypair, data, self.arn, self.env)
 
     def send_request(self, request):
+        """Send a request to the phone. Adds the request id and timestamp."""
         request_id = randint(0, 1e9)
         request["b"] = request_id
         request["z"] = int(time.time() * 1000)
@@ -111,6 +119,7 @@ class Session:
         return self.poll_queue(request_id)
 
     def poll_queue(self, request_id):
+        """Poll the volatile queue for new messages indefinetely."""
         messages = self.volatile_queue_handler.start(True)
         for response in messages:
             message = json.loads(crypto.decrypt(response["body"], self.key))
@@ -123,6 +132,7 @@ class Session:
                 return self.poll_queue(request_id)
 
     def pairing_status(self):
+        """Check if the session has been ended by the app."""
         messages = self.persistent_queue_handler.start(False)
         for message in messages:
             decrypted_message = json.loads(crypto.decrypt(message["body"], self.key))
@@ -132,6 +142,7 @@ class Session:
         return True
 
     def send_bulk_accounts(self, accounts):
+        """Send multiple accounts to the app."""
         persistent_message = {"t": MessageType.ADD_BULK.value, "b": accounts}
         api.send_bulk_accounts(
             crypto.encrypt(json.dumps(persistent_message).encode("utf-8"), self.key),
@@ -142,6 +153,7 @@ class Session:
         return self.send_request(request)
 
     def end(self, including_queues=False):
+        """End the current session."""
         if including_queues:
             api.delete_queues(self.signing_keypair, self.env)
         else:
@@ -152,6 +164,7 @@ class Session:
 
     @staticmethod
     def get():
+        """Load a session if there is any."""
         session_path = "%s/session" % click.get_app_dir(APP_NAME)
         if path.exists(session_path):
             with open(session_path, "rb") as f:
@@ -164,6 +177,7 @@ class Session:
 
     @staticmethod
     def pair():
+        """Pair with the app. Displays pairing QR-code in the terminal."""
         pairing_path = "%s/pairing" % click.get_app_dir(APP_NAME)
         if path.exists(pairing_path):
             with open(pairing_path, "rb") as f:

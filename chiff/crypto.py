@@ -1,14 +1,11 @@
-from urllib.parse import urlparse
 from math import ceil
 
 import nacl.encoding
 import nacl.secret
 import nacl.signing
 import nacl.utils
-import tldextract
 from nacl.hash import sha256 as nacl_sha256, blake2b
 import nacl.public
-import zlib
 
 SEED_SIZE = 16
 PADDING_BLOCK_SIZE = 200
@@ -31,21 +28,6 @@ def verify(message64, pub_key: nacl.signing.VerifyKey):
     return pub_key.verify(
         add_padding(message64), encoder=nacl.encoding.URLSafeBase64Encoder
     )
-
-
-def encrypt_symmetric(message, key: nacl.secret.SecretBox):
-    return (
-        key.encrypt(zlib.compress(message), encoder=nacl.encoding.URLSafeBase64Encoder)
-        .decode("utf-8")
-        .rstrip("=")
-    )
-
-
-def decrypt_symmetric(message, key: nacl.secret.SecretBox):
-    compressed = key.decrypt(
-        add_padding(message), encoder=nacl.encoding.URLSafeBase64Encoder
-    )
-    return zlib.decompress(compressed)
 
 
 def encrypt(message, key):
@@ -91,12 +73,12 @@ def generate_keypair():
     )
 
 
-def generic_hash(data):
-    return blake2b(data, encoder=nacl.encoding.RawEncoder)
-
-
 def sha256(data):
     return nacl_sha256(data, encoder=nacl.encoding.HexEncoder).decode("utf-8")
+
+
+def sha256_data(data):
+    return nacl_sha256(data, encoder=nacl.encoding.RawEncoder)
 
 
 def generic_hash_string(string):
@@ -108,15 +90,6 @@ def generic_hash_string(string):
 def add_padding(string):
     padding = 4 - (len(string) % 4)
     return string + ("=" * padding)
-
-
-def user_id(key):
-    pubkey = (
-        key.verify_key.encode(encoder=nacl.encoding.URLSafeBase64Encoder)
-        .decode("utf-8")
-        .rstrip("=")
-    )
-    return sha256(pubkey.encode("utf-8")).decode("utf-8")
 
 
 def to_base64(data):
@@ -145,46 +118,3 @@ def unpad(encoded_bytes):
             pad_size = idx + 1
             break
     return encoded_bytes[:-pad_size]
-
-
-def get_site_ids(url):
-    parsed_domain = urlparse(url)  # contains the protocol
-    extracted_domain = tldextract.extract(url)
-    top_domain = ""
-
-    if parsed_domain is None and url is None:
-        raise ValueError("Invalid / empty URL")
-
-    if extracted_domain.subdomain == "":
-        full_domain = sha256(
-            (
-                parsed_domain.scheme
-                + "://"
-                + extracted_domain.domain
-                + "."
-                + extracted_domain.suffix
-            ).encode("utf-8")
-        )
-    else:
-        full_domain = sha256(
-            (
-                parsed_domain.scheme
-                + "://"
-                + extracted_domain.subdomain
-                + "."
-                + extracted_domain.domain
-                + "."
-                + extracted_domain.suffix
-            ).encode("utf-8")
-        )
-        top_domain = sha256(
-            (
-                parsed_domain.scheme
-                + "://"
-                + extracted_domain.domain
-                + "."
-                + extracted_domain.suffix
-            ).encode("utf-8")
-        )
-
-    return full_domain, top_domain

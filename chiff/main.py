@@ -1,4 +1,6 @@
+from chiff.ssh_key import Key, KeyType
 from chiff.utils import check_response
+from chiff.crypto import from_base64
 import click
 import json
 import csv
@@ -20,8 +22,8 @@ from chiff.constants import APP_NAME
 @click.group()
 def main():
     """This application can be paired with the Chiff app for iOS or Android,
-    allowing you to fetch password or notes from your accounts.
-    Pair it with your app by using chiff pair.
+    allowing you to fetch password or notes from your accounts or sign ssh requests.
+    Pair it with your app by using `chiff pair`.
     """
     pass
 
@@ -58,10 +60,7 @@ def unpair():
         click.echo("There currently does not seem to be an active session.")
 
 
-@main.command(
-    short_help="Get data from a currently paired device."
-    "Only returns the password by default"
-)
+@main.command(short_help="Get data from a currently paired device.")
 @click.option(
     "-i", "--id", required=True, help="The id of the account you want the data for"
 )
@@ -71,7 +70,7 @@ def unpair():
     "--format-json",
     is_flag=True,
     help='Return account in JSON format ({ "username": "example",'
-    ' "password": "secret",  "notes": "important note" | undefined })',
+    ' "password": "secret", "notes": "important note" })',
 )
 @click.option(
     "-s",
@@ -80,7 +79,9 @@ def unpair():
     help="Skip fetching the accounts first to check if the account exists.",
 )
 def get(id, notes, format_json, skip):
-    """Get data from a currently paired device. Only returns the password by default"""
+    """Get data from a currently paired device. Only returns the password by default,
+    but you can retrieve the notes by setting the -n flag or
+    all data with the -j flag as JSON."""
     session, accounts = get_session(skip)
     request = {"a": id, "r": MessageType.GET_DETAILS.value}
     if not skip:
@@ -107,7 +108,7 @@ def get(id, notes, format_json, skip):
             raise Exception("No password found in response.")
 
 
-@main.command(short_help="Add a new account")
+@main.command(short_help="Add a new account.")
 @click.option(
     "-u",
     "--username",
@@ -194,10 +195,7 @@ def update(id, username, url, name, password, notes):
         click.echo("Account successfully updated.")
 
 
-@main.command(
-    short_help="Shows the status of the current session and an overview "
-    "of all accounts."
-)
+@main.command(short_help="Shows the status of the current session.")
 def status():
     """Shows the status of the current session and an overview of all accounts."""
     session = Session.get()
@@ -207,19 +205,22 @@ def status():
         accounts = list(
             map(
                 lambda x: {
-                    "id": x["id"],
-                    "username": x["username"],
-                    "name": x["sites"][0]["name"],
+                    "ID": x["id"],
+                    "Username": x["username"],
+                    "Name": x["sites"][0]["name"],
                     "URL": x["sites"][0]["url"],
                 },
-                session.get_accounts(),
+                session.get_accounts().values(),
             )
         )
         print(tabulate(accounts, headers="keys", tablefmt="psql"))
         click.echo("")
         identities = list(
             map(
-                lambda x: {"key": str(x)},
+                lambda x: {
+                    "Fingerprint": x.fingerprint(),
+                    "Public key": str(x),
+                },
                 session.get_ssh_identities(),
             )
         )
@@ -230,7 +231,9 @@ def status():
         click.echo("There is no active session.")
 
 
-@main.command(name="import", short_help="Import accounts from a csv or kdbx file.")
+@main.command(
+    name="import", short_help="Import accounts from a csv, json or kdbx file."
+)
 @click.option(
     "-f",
     "--format",
@@ -333,15 +336,18 @@ def create_ssh_key(name, enclave):
         "r": MessageType.SSH_CREATE.value,
         "n": name,
     }
+    key_type = None
     if enclave:
+        key_type = KeyType.ECDSA256
         request["g"] = [-7]  # Cose identifier for ECDSA256
     else:
+        key_type = KeyType.ED25519
         request["g"] = [-8]  # Cose identifier for EdDSA
     response = session.send_request(request)
     if check_response(response):
-        click.echo("SSH key created!")
-        click.echo("Fingerprint: %s" % response["a"])
-        click.echo("Public key: %s" % response["pk"])
+        click.echo("SSH key created:")
+        identity = Key(response["a"], from_base64(response["pk"]), key_type, name)
+        click.echo(str(identity))
 
 
 def get_session(skip):
