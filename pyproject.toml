@@ -3,7 +3,7 @@ name = "chiff"
 version = "0.1.0"
 description = "Chiff command-line client."
 authors = ["bas-d <7903735+bas-d@users.noreply.github.com>"]
-license = "GNU LGPLv3"
+license = "GNU GPLv3"
 readme = "README.md"
 homepage = "https://chiff.dev"
 repository = "https://github.com/chiff-app/chiff-cli"
@@ -22,7 +22,6 @@ requests = "^2.2"
 qrcode = "^6.1"
 tabulate = "^0.8.7"
 python-daemon = "^2.3.0"
-cryptography = "^3.4.7"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.4"
