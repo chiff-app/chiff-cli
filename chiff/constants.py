@@ -1,7 +1,36 @@
 from enum import Enum
 
 APP_NAME = "Chiff"
-FILE_NAME = "chiff-socket.ssh"
+SOCKET_NAME = "chiff-socket.ssh"
+
+launchagent_plist = """\
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" \
+    "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+    <dict>
+        <key>Label</key>
+        <string>co.chiff.chiffd</string>
+        <key>ProgramArguments</key>
+        <array>
+            <string>{path}</string>
+        </array>
+        <key>StandardErrorPath</key>
+        <string>{app_dir}/stderr.log</string>
+        <key>StandardOutPath</key>
+        <string>{app_dir}/stdout.log</string>
+        <key>KeepAlive</key>
+        <true/>
+    </dict>
+</plist>
+"""
+
+ssh_config = """\
+
+# Added by Chiff
+Host *
+   IdentityAgent "{app_dir}/{socket}"
+
+"""
 
 
 class MessageType(Enum):

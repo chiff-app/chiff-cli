@@ -1,3 +1,4 @@
+from chiff.setup import chiff_setup
 from chiff.ssh_key import Key, KeyType
 from chiff.utils import check_response
 from chiff.crypto import from_base64
@@ -348,6 +349,9 @@ def create_ssh_key(name, enclave):
         click.echo("SSH key created:")
         identity = Key(response["a"], from_base64(response["pk"]), key_type, name)
         click.echo(str(identity))
+
+
+main.add_command(chiff_setup, "setup")
 
 
 def get_session(skip):

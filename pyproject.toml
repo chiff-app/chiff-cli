@@ -30,7 +30,7 @@ black = {version = "^20.8b1", allow-prereleases = true}
 
 [tool.poetry.scripts]
 chiff = "chiff.main:main"
-chiffd = "chiff.socket:start"
+chiffd = "chiff.socket:main"
 
 [build-system]
 requires = ["poetry>=0.12"]

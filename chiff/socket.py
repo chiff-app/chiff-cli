@@ -1,6 +1,6 @@
 from chiff.ssh_key import KeyType
 from chiff.crypto import from_base64, to_base64
-from chiff.utils import check_response, length_and_data, ssh_reader
+from chiff.utils import check_response, eprint, length_and_data, ssh_reader
 from chiff.session import Session
 import click
 from daemon import DaemonContext
@@ -8,49 +8,55 @@ import socket
 import os
 
 
-from chiff.constants import APP_NAME, FILE_NAME, MessageType, SSHMessageType
+from chiff.constants import APP_NAME, SOCKET_NAME, MessageType, SSHMessageType
+
+
+@click.command()
+@click.option("-d", "--daemon", is_flag=True, help="Run as a daemon process.")
+def main(daemon):
+    if daemon:
+        with DaemonContext():
+            start()
+    else:
+        start()
 
 
 def start():
-    """Start the SSH socket"""
-    with DaemonContext():
-        filename = "%s/%s" % (click.get_app_dir(APP_NAME), FILE_NAME)
-        if os.path.exists(filename):
-            os.remove(filename)
-        org_file_name = os.environ.get("SSH_AUTH_SOCK")
-        if org_file_name.endswith(FILE_NAME):
-            org_file_name = None
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        sock.bind(filename)
-        sock.listen(1)
-        print("Starting Chiff daemon...")
-        while True:
-            connection = sock.accept()[0]
-            try:
-                org_sock = None
-                if org_file_name:
-                    org_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                    org_sock.connect(org_file_name)
-                handle_connection(connection, org_sock)
-            except Exception as err:
-                connection.sendall(
-                    length_and_data(SSHMessageType.SSH_AGENT_FAILURE.raw)
-                )
-                raise err
-            finally:
-                if org_sock:
-                    org_sock.close()
-                connection.close()
+    """Start the Chiff background script."""
+    filename = "%s/%s" % (click.get_app_dir(APP_NAME), SOCKET_NAME)
+    if os.path.exists(filename):
+        os.remove(filename)
+    org_file_name = os.environ.get("SSH_AUTH_SOCK")
+    if org_file_name.endswith(SOCKET_NAME):
+        org_file_name = None
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.bind(filename)
+    sock.listen(1)
+    print("Starting Chiff daemon...")
+    while True:
+        connection = sock.accept()[0]
+        try:
+            org_sock = None
+            if org_file_name:
+                org_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                org_sock.connect(org_file_name)
+            handle_connection(connection, org_sock)
+        except Exception as err:
+            eprint(err)
+            connection.sendall(length_and_data(SSHMessageType.SSH_AGENT_FAILURE.raw))
+        finally:
+            if org_sock:
+                org_sock.close()
+            connection.close()
 
 
-def forward(connection, org_sock):
+def forward(data, connection, org_sock):
     """Forward a message the original ssh agent."""
-    data = connection.recv(2048)
     if data and len(data) >= 5:
         org_sock.sendall(data)
         resp = org_sock.recv(2048)
         connection.sendall(resp)
-        return forward(connection, org_sock)
+        return forward(connection.recv(2048), connection, org_sock)
 
 
 def get_original_identities(org_sock, data):
@@ -71,6 +77,11 @@ def handle_identities_request(connection, data, org_sock):
     """Get all Chiff SSH identities from the session and append the
     original SSH identities."""
     session = Session.get()
+    if not session:
+        if org_sock:
+            return forward(data, connection, org_sock)
+        else:
+            return
     identities = session.get_ssh_identities()
     original_count, original_identities = get_original_identities(org_sock, data)
     total_count = len(identities) + original_count
@@ -82,6 +93,7 @@ def handle_identities_request(connection, data, org_sock):
     if original_count > 0:
         response += original_identities
     connection.sendall(length_and_data(response))
+    return handle_connection(connection, org_sock)
 
 
 def handle_signing(connection, data, org_sock):
@@ -95,12 +107,17 @@ def handle_signing(connection, data, org_sock):
         next(hash_reader)  # Curve
     key = next(hash_reader)
     session = Session.get()
+    if not session:
+        if org_sock:
+            return forward(data, connection, org_sock)
+        else:
+            return
     identity = session.get_ssh_identity(key, key_type)
-    if not identity and org_sock:
-        org_sock.sendall(data)
-        resp = org_sock.recv(2048)
-        connection.sendall(resp)
-        return
+    if not identity:
+        if org_sock:
+            return forward(data, connection, org_sock)
+        else:
+            return
     request = {
         "a": identity.id,
         "r": MessageType.SSH_LOGIN.value,
@@ -114,6 +131,7 @@ def handle_signing(connection, data, org_sock):
             + identity.encode_signature(from_base64(response["s"]))
         )
         connection.sendall(length_and_data(response))
+        return handle_connection(connection, org_sock)
     else:
         raise Exception("Request denied")
 
@@ -126,15 +144,13 @@ def handle_connection(connection, org_sock):
     if not type:
         return
     elif type == SSHMessageType.SSH_AGENTC_REQUEST_IDENTITIES.value:
-        handle_identities_request(connection, data, org_sock)
-        return handle_connection(connection, org_sock)
+        return handle_identities_request(connection, data, org_sock)
     elif type == SSHMessageType.SSH_AGENTC_SIGN_REQUEST.value:
-        handle_signing(connection, data, org_sock)
-        return handle_connection(connection, org_sock)
+        return handle_signing(connection, data, org_sock)
     elif org_sock:
         # Chiff doesn't support this request type, delegate to original SSH agent.
-        return forward(connection, org_sock)
+        return forward(data, connection, org_sock)
 
 
 if __name__ == "__main__":
-    start()
+    main()
