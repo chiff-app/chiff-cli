@@ -1,13 +1,19 @@
 import io
 import click
-from chiff.constants import APP_NAME, SOCKET_NAME, launchagent_plist, ssh_config
+from chiff.constants import (
+    APP_NAME,
+    SOCKET_NAME,
+    launchagent_plist,
+    ssh_config,
+    systemd_service,
+)
 from pathlib import Path
 import subprocess
 from sys import platform
 
 
-@click.command("setup", short_help="Set-up the ssh-agent")
-def chiff_setup():
+@click.command("init", short_help="Set-up the ssh-agent")
+def chiff_init():
     """Set up the ssh-agent for Chiff. This starts a background process that forwards
     SSH-requests to your phone."""
     if platform != "linux" and platform != "linux2" and platform != "darwin":
@@ -25,7 +31,7 @@ def chiff_setup():
         if platform == "darwin":
             setup_boot_darwin(app_dir)
         else:
-            setup_boot_linux(app_dir)
+            setup_boot_linux()
     if click.confirm(
         "Do you want add set Chiff as the IdentityAgent \
 for all hosts in your ~/.ssh/config file?",
@@ -52,7 +58,7 @@ def setup_boot_darwin(app_dir):
     with click.open_file(launchagent_path, mode="w+") as f:
         f.write(
             launchagent_plist.format(
-                path=Path(Path.home(), ".local", "bin", "chiffd"), app_dir=app_dir
+                path=Path(".local", "bin", "chiffd"), app_dir=app_dir
             )
         )
     subprocess.run(["launchctl", "load", "-w", launchagent_path])
@@ -60,10 +66,27 @@ def setup_boot_darwin(app_dir):
 
 
 def setup_boot_linux():
-    click.echo("TODO: add systemd service")
+    systemd_path = Path(Path.home(), ".config", "systemd", "user", "chiff.service")
+    with click.open_file(systemd_path, mode="w+") as f:
+        f.write(systemd_service.format(path=Path(".local", "bin", "chiffd")))
+    subprocess.run(["systemctl", "--user", "--now", "enable", "chiff"])
+    click.echo("Chiff daemon installed!")
 
 
-def check_chiffd():
-    """Check if chiffd is running and installed"""
-    print("TODO: Check if chiffd is running and installed")
-    return False
+def check_boot_linux():
+    return (
+        subprocess.getoutput(["systemctl", "--user", "is-active", "chiff"]) == "active"
+    )
+
+
+def check_boot_darwin():
+    return (
+        subprocess.getoutput(["systemctl", "--user", "is-active", "chiff"]) == "active"
+    )
+
+
+def check_ssh_config(app_dir):
+    ssh_path = Path(Path.home(), ".ssh", "config")
+    content = ssh_config.format(app_dir=app_dir, socket=SOCKET_NAME)
+    with click.open_file(ssh_path, mode="r") as f:
+        return content in f.read()

@@ -28,7 +28,7 @@ For the _iOS app_, see [chiff-ios](https://github.com/chiff-app/chiff-ios).
 
 Package is available on PyPi.
 The easiest way is to use [_pipx_](https://github.com/pypa/pipx): `pipx install chiff`. This should install `chiff` and `chiffd` to your shell.
-To set up the ssh-agent, you can run `chiff setup`. This sets up `chiffd` as a background script and adds the following to your `~/.ssh/config`:
+To set up the ssh-agent, you can run `chiff init`. This sets up `chiffd` as a background script and adds the following to your `~/.ssh/config`:
 
 ```
 Host *

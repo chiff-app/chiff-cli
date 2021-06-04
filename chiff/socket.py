@@ -4,6 +4,7 @@ from chiff.utils import check_response, eprint, length_and_data, ssh_reader
 from chiff.session import Session
 import click
 from daemon import DaemonContext
+from pathlib import Path
 import socket
 import os
 
@@ -23,11 +24,12 @@ def main(daemon):
 
 def start():
     """Start the Chiff background script."""
+    Path(click.get_app_dir(APP_NAME)).mkdir(parents=True, exist_ok=True)
     filename = "%s/%s" % (click.get_app_dir(APP_NAME), SOCKET_NAME)
     if os.path.exists(filename):
         os.remove(filename)
     org_file_name = os.environ.get("SSH_AUTH_SOCK")
-    if org_file_name.endswith(SOCKET_NAME):
+    if org_file_name and org_file_name.endswith(SOCKET_NAME):
         org_file_name = None
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sock.bind(filename)

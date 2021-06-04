@@ -3,6 +3,20 @@ from enum import Enum
 APP_NAME = "Chiff"
 SOCKET_NAME = "chiff-socket.ssh"
 
+systemd_service = """\
+[Unit]
+Description=Chiff Daemon
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+ExecStart=%h/{path}
+
+[Install]
+WantedBy=multi-user.target
+"""
+
 launchagent_plist = """\
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" \
     "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -12,7 +26,7 @@ launchagent_plist = """\
         <string>co.chiff.chiffd</string>
         <key>ProgramArguments</key>
         <array>
-            <string>{path}</string>
+            <string>$HOME/{path}</string>
         </array>
         <key>StandardErrorPath</key>
         <string>{app_dir}/stderr.log</string>
