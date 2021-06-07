@@ -18,8 +18,6 @@ class KeyType(Enum):
     def curve(self):
         if self == KeyType.ECDSA256:
             return b"nistp256"
-        else:
-            return None
 
 
 class Key(object):

@@ -27,6 +27,8 @@ python-daemon = "^2.3.0"
 pytest = "^5.4"
 flake8 = "^3.8.3"
 black = {version = "^20.8b1", allow-prereleases = true}
+pytest-cov = "^2.12.1"
+pytest-mock = "^3.6.1"
 
 [tool.poetry.scripts]
 chiff = "chiff.main:main"
