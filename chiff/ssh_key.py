@@ -47,8 +47,8 @@ class Key(object):
         return length_and_data(signature_data)
 
     def fingerprint(self):
-        return "SHA256:%s" % to_default_base64(sha256_data(self.__key_blob())).rstrip(
-            "="
+        return "SHA256:{hash}".format(
+            hash=to_default_base64(sha256_data(self.__key_blob())).rstrip("=")
         )
 
     def __key_blob(self):
@@ -62,8 +62,8 @@ class Key(object):
             return length_and_data(KeyType.ED25519.raw) + length_and_data(self.pubkey)
 
     def __str__(self):
-        return "%s %s %s" % (
-            self.key_type.value,
-            to_default_base64(self.__key_blob()),
-            self.name,
+        return "{type} {key} {name}".format(
+            type=self.key_type.value,
+            key=to_default_base64(self.__key_blob()),
+            name=self.name,
         )

@@ -25,7 +25,7 @@ def main(daemon):
 def start():
     """Start the Chiff background script."""
     Path(click.get_app_dir(APP_NAME)).mkdir(parents=True, exist_ok=True)
-    filename = "%s/%s" % (click.get_app_dir(APP_NAME), SOCKET_NAME)
+    filename = "{dir}/{file}".format(dir=click.get_app_dir(APP_NAME), file=SOCKET_NAME)
     if os.path.exists(filename):
         os.remove(filename)
     org_file_name = os.environ.get("SSH_AUTH_SOCK")

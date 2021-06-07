@@ -15,6 +15,7 @@ import time
 import sys
 import platform
 from urllib.parse import urlencode
+from pathlib import Path
 
 
 class Session:
@@ -69,7 +70,7 @@ class Session:
         data = json.loads(crypto.decrypt(result["data"], self.key))
         if data["appVersion"] != self.app_version:
             self.app_version = data["appVersion"]
-            with open("%s/session" % click.get_app_dir(APP_NAME), "wb") as f:
+            with open(Path(click.get_app_dir(APP_NAME), "session"), "wb") as f:
                 pickle.dump(self, f)
                 f.close()
         objects = result["accounts"]
@@ -160,12 +161,12 @@ class Session:
             request = {"r": 7, "z": int(time.time() * 1000)}
             request = crypto.encrypt(json.dumps(request).encode("utf-8"), self.key)
             self.send_push_message(request, "END_SESSION", "Session ended by CLI")
-        os.remove("%s/session" % click.get_app_dir(APP_NAME))
+        os.remove(Path(click.get_app_dir(APP_NAME), "session"))
 
     @staticmethod
     def get():
         """Load a session if there is any."""
-        session_path = "%s/session" % click.get_app_dir(APP_NAME)
+        session_path = Path(click.get_app_dir(APP_NAME), "session")
         if path.exists(session_path):
             with open(session_path, "rb") as f:
                 session = pickle.load(f)
@@ -178,7 +179,7 @@ class Session:
     @staticmethod
     def pair():
         """Pair with the app. Displays pairing QR-code in the terminal."""
-        pairing_path = "%s/pairing" % click.get_app_dir(APP_NAME)
+        pairing_path = Path(click.get_app_dir(APP_NAME), "pairing")
         if path.exists(pairing_path):
             with open(pairing_path, "rb") as f:
                 pairing = pickle.load(f)
@@ -252,7 +253,7 @@ class Session:
             message["environment"],
             message["arn"],
         )
-        with open("%s/session" % click.get_app_dir(APP_NAME), "wb") as f:
+        with open(Path(click.get_app_dir(APP_NAME), "session"), "wb") as f:
             pickle.dump(session, f)
             f.close()
         api.delete_pairing_queue(pairing_keypair)

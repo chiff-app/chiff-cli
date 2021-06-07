@@ -20,7 +20,7 @@ def check_response(response):
         return False
     elif response["t"] == MessageType.ERROR.value:
         if "e" in response:
-            click.echo("Request failed: %s." % response["e"])
+            click.echo("Request failed: {error}.".format(error=response["e"]))
             return False
         else:
             click.echo("Request failed.")

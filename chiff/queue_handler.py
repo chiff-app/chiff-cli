@@ -6,12 +6,11 @@ class QueueHandler:
 
     def __init__(self, keypair, env, endpoint):
         self.keypair = keypair
-        self.url = "%s/%s/%s/%s/%s" % (
-            api.API_URL,
-            api.get_endpoint(env),
-            "sessions",
-            crypto.to_base64(keypair.verify_key.__bytes__()),
-            endpoint,
+        self.url = "{host}/{env}/sessions/{pub_key}/{endpoint}".format(
+            host=api.API_URL,
+            env=api.get_endpoint(env),
+            pub_key=crypto.to_base64(keypair.verify_key.__bytes__()),
+            endpoint=endpoint,
         )
 
     def start(self, indefinite):
