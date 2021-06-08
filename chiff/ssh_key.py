@@ -37,8 +37,18 @@ class Key(object):
     def encode_signature(self, signature):
         signature_data = length_and_data(self.key_type.raw)
         if self.key_type is KeyType.ECDSA256:
-            r = length_and_data(signature[: len(signature) // 2])
-            s = length_and_data(signature[len(signature) // 2 :])
+            r = signature[: len(signature) // 2]
+            if r[0] > 127:
+                # Prepend with zero if first bit is positive.
+                r = length_and_data(b"\x00" + r)
+            else:
+                r = length_and_data(r)
+            s = signature[len(signature) // 2 :]
+            if s[0] > 127:
+                # Prepend with zero if first bit is positive.
+                s = length_and_data(b"\x00" + s)
+            else:
+                s = length_and_data(s)
             signature_data += length_and_data(r + s)
         else:
             signature_data += length_and_data(signature)

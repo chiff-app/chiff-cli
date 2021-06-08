@@ -157,14 +157,12 @@ def handle_signing(connection, data, org_sock):
     }
     response = session.send_request(request)
     logging.info("Request sent to phone.")
-    print(from_base64(response["s"]))
     if check_response(response):
         response = (
             SSHMessageType.SSH_AGENT_SIGN_RESPONSE.raw
             + identity.encode_signature(from_base64(response["s"]))
         )
         logging.info("Response received from phone.")
-        print(to_base64(length_and_data(response)))
         connection.sendall(length_and_data(response))
         return handle_connection(connection, org_sock)
     else:
