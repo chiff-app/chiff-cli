@@ -58,7 +58,7 @@ def setup_boot_darwin(app_dir):
     with click.open_file(launchagent_path, mode="w+") as f:
         f.write(
             launchagent_plist.format(
-                path=Path(".local", "bin", "chiffd"), app_dir=app_dir
+                path=Path(Path.home(), ".local", "bin", "chiffd"), app_dir=app_dir
             )
         )
     subprocess.run(["launchctl", "load", "-w", launchagent_path])
@@ -71,18 +71,6 @@ def setup_boot_linux():
         f.write(systemd_service.format(path=Path(".local", "bin", "chiffd")))
     subprocess.run(["systemctl", "--user", "--now", "enable", "chiff"])
     click.echo("Chiff daemon installed!")
-
-
-def check_boot_linux():
-    return (
-        subprocess.getoutput(["systemctl", "--user", "is-active", "chiff"]) == "active"
-    )
-
-
-def check_boot_darwin():
-    return (
-        subprocess.getoutput(["systemctl", "--user", "is-active", "chiff"]) == "active"
-    )
 
 
 def check_ssh_config(app_dir):

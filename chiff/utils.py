@@ -6,11 +6,6 @@ from urllib.parse import urlparse
 from chiff.constants import MessageType
 import click
 import tldextract
-import sys
-
-
-def eprint(*args, **kwargs):
-    print(*args, file=sys.stderr, **kwargs)
 
 
 def check_response(response):

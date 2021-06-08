@@ -26,12 +26,10 @@ launchagent_plist = """\
         <string>co.chiff.chiffd</string>
         <key>ProgramArguments</key>
         <array>
-            <string>$HOME/{path}</string>
+            <string>{path}</string>
         </array>
         <key>StandardErrorPath</key>
-        <string>{app_dir}/stderr.log</string>
-        <key>StandardOutPath</key>
-        <string>{app_dir}/stdout.log</string>
+        <string>{app_dir}/chiffd.log</string>
         <key>KeepAlive</key>
         <true/>
     </dict>

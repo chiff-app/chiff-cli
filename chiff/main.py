@@ -1,4 +1,4 @@
-from chiff.setup import chiff_setup
+from chiff.setup import chiff_init
 from chiff.ssh_key import Key, KeyType
 from chiff.utils import check_response
 from chiff.crypto import from_base64
@@ -202,7 +202,7 @@ def status():
     """Shows the status of the current session and an overview of all accounts."""
     session = Session.get()
     if session:
-        click.echo("There is an active session with id {id}.\n", format(id=session.id))
+        click.echo("There is an active session with id {id}.\n".format(id=session.id))
         click.echo("Accounts:")
         accounts = list(
             map(
@@ -352,7 +352,7 @@ def create_ssh_key(name, enclave):
         click.echo(str(identity))
 
 
-main.add_command(chiff_setup, "setup")
+main.add_command(chiff_init, "init")
 
 
 def get_session(skip):

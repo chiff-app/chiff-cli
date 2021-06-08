@@ -164,6 +164,22 @@ Import from a json file with `chiff import -f kdbx -p <path>`. You will have to 
 - Add better support for AWS, Google Cloud, etc.
 - Add export function for csv, json and kdbx
 
+## FAQ
+
+### I'd like to forward requests to another SSH agent
+
+By default, Chiff forwards the requests to the ssh-agent that is present in the `SSH_AUTH_SOCK`, environment variable. If you have changed this in `~/.bashrc` or equivalent, it may not be available to the background process. You can adjust the LaunchAgent plist or systemd service manually to set. For example, if you would like to use Chiff in combination with [secretive][https://github.com/maxgoedjen/secretive], you add the following to `~/Library/LaunchAgents/co.chiff.chiffd.plist`:
+
+```xml
+<key>EnvironmentVariables</key>
+<dict>
+    <key>SSH_AUTH_SOCK</key>
+    <string>/Users/username/Library/Containers/com.maxgoedjen.Secretive.SecretAgent/Data/socket.ssh</string>
+</dict>
+```
+
+Then reload it with `launchctl load -w ~/Library/LaunchAgents/co.chiff.chiffd.plist`. If the key is present in Chiff, they request will be handled by Chiff. If not, it will be forwarded to the secretive ssh agent.
+
 ## Contributing
 
 To contribute, follow these steps:

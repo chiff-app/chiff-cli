@@ -10,7 +10,6 @@ def test_queue_handler_start_empty(mocker):
         return {"messages": []}
 
     mocker.patch("chiff.api.get_from_sqs", mock_get_from_sqs)
-    # mocker.return_value = {"messages": ["1", "2"]}
     signing_keypair = crypto.create_signing_keypair(SEED + SEED)
     handler = QueueHandler(signing_keypair, "dev", "volatile")
     messages = handler.start(False)
@@ -22,7 +21,6 @@ def test_queue_handler_start_return(mocker):
         return {"messages": ["dummy-message"]}
 
     mocker.patch("chiff.api.get_from_sqs", mock_get_from_sqs)
-    # mocker.return_value = {"messages": ["1", "2"]}
     signing_keypair = crypto.create_signing_keypair(SEED + SEED)
     handler = QueueHandler(signing_keypair, "dev", "volatile")
     messages = handler.start(True)
@@ -41,7 +39,6 @@ def test_queue_handler_start_return_second_time(mocker):
             return {"messages": []}
 
     mocker.patch("chiff.api.get_from_sqs", mock_get_from_sqs)
-    # mocker.return_value = {"messages": ["1", "2"]}
     signing_keypair = crypto.create_signing_keypair(SEED + SEED)
     handler = QueueHandler(signing_keypair, "dev", "volatile")
     messages = handler.start(True)
