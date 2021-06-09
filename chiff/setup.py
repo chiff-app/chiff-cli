@@ -42,7 +42,7 @@ for all hosts in your ~/.ssh/config file?",
 
 
 def add_to_ssh_config(app_dir):
-    ssh_path = Path(Path.home(), ".ssh", "config")
+    ssh_path = Path.home() / ".ssh" / "config"
     content = ssh_config.format(app_dir=app_dir, socket=SOCKET_NAME)
     with click.open_file(ssh_path, mode="a+") as f:
         f.seek(0)
@@ -52,13 +52,13 @@ def add_to_ssh_config(app_dir):
 
 
 def setup_boot_darwin(app_dir):
-    launchagent_path = Path(
-        Path.home(), "Library", "LaunchAgents", "co.chiff.chiffd.plist"
+    launchagent_path = (
+        Path.home() / "Library" / "LaunchAgents" / "co.chiff.chiffd.plist"
     )
     with click.open_file(launchagent_path, mode="w+") as f:
         f.write(
             launchagent_plist.format(
-                path=Path(Path.home(), ".local", "bin", "chiffd"), app_dir=app_dir
+                path=Path.home() / ".local" / "bin" / "chiffd", app_dir=app_dir
             )
         )
     subprocess.run(["launchctl", "load", "-w", launchagent_path])
@@ -66,7 +66,7 @@ def setup_boot_darwin(app_dir):
 
 
 def setup_boot_linux():
-    systemd_path = Path(Path.home(), ".config", "systemd", "user", "chiff.service")
+    systemd_path = Path.home() / ".config" / "systemd" / "user" / "chiff.service"
     with click.open_file(systemd_path, mode="w+") as f:
         f.write(systemd_service.format(path=Path(".local", "bin", "chiffd")))
     subprocess.run(["systemctl", "--user", "--now", "enable", "chiff"])
@@ -74,7 +74,7 @@ def setup_boot_linux():
 
 
 def check_ssh_config(app_dir):
-    ssh_path = Path(Path.home(), ".ssh", "config")
+    ssh_path = Path.home() / ".ssh" / "config"
     content = ssh_config.format(app_dir=app_dir, socket=SOCKET_NAME)
     with click.open_file(ssh_path, mode="r") as f:
         return content in f.read()

@@ -40,6 +40,7 @@ def pair():
         ):
             session.end()
             Session.pair()
+            click.echo("\nNew session successfully created!")
         else:
             click.echo("Exiting...")
             return
@@ -153,11 +154,8 @@ def add(username, url, name, password, notes):
         request["y"] = notes
     response = session.send_request(request)
     if check_response(response):
-        click.echo(
-            "Account created with id {id}".format(
-                id=crypto.generic_hash_string(("%s_%s" % (site_id, username)))
-            )
-        )
+        id = crypto.generic_hash_string(("%s_%s" % (site_id, username)))
+        click.echo(f"Account created with id {id}")
 
 
 @main.command(short_help="Update an existing account")
@@ -202,7 +200,8 @@ def status():
     """Shows the status of the current session and an overview of all accounts."""
     session = Session.get()
     if session:
-        click.echo("There is an active session with id {id}.\n".format(id=session.id))
+        click.echo(f"There is an active session with id {session.id}.\n")
+        accounts, identities = session.get_session_data()
         click.echo("Accounts:")
         accounts = list(
             map(
@@ -212,7 +211,7 @@ def status():
                     "Name": x["sites"][0]["name"],
                     "URL": x["sites"][0]["url"],
                 },
-                session.get_accounts().values(),
+                accounts.values(),
             )
         )
         print(tabulate(accounts, headers="keys", tablefmt="psql"))
@@ -223,7 +222,7 @@ def status():
                     "Fingerprint": x.fingerprint(),
                     "Public key": str(x),
                 },
-                session.get_ssh_identities(),
+                identities,
             )
         )
         if len(identities) > 0:
@@ -332,7 +331,7 @@ def import_accounts(format, path, skip):
         This implies that you will be unable to recover the key with your seed!",
 )
 def create_ssh_key(name, enclave):
-    click.echo("Requesting to generate new SSH key {name}".format(name=name))
+    click.echo(f"Requesting to generate new SSH key {name}")
     session = get_session(False)[0]
     request = {
         "r": MessageType.SSH_CREATE.value,

@@ -3,7 +3,8 @@ from chiff import api, crypto
 from os import path
 from random import randint
 import os
-import qrcode
+from qrcode import QRCode
+from qrcode.constants import ERROR_CORRECT_H
 import pickle
 import click
 import json
@@ -39,74 +40,17 @@ class Session:
 
     def get_ssh_identities(self):
         """Get all SSH identies for this session."""
-        return [
-            Key(
-                identity["id"],
-                crypto.from_base64(identity["pubKey"]),
-                KeyType(identity["algorithm"]),
-                identity["name"],
-            )
-            for identity in self.get_session_data().values()
-            if "type" in identity and identity["type"] == "ssh"
-        ]
+        return self.get_session_data()[1]
 
     def get_ssh_identity(self, pubkey, key_type):
         """Get a single SSH identity. Returns `None` if it can't be found."""
-        for identity in self.get_ssh_identities():
+        for identity in self.get_session_data()[1]:
             if identity.pubkey == pubkey and identity.key_type is key_type:
                 return identity
 
     def get_accounts(self):
         """Get all accounts for this session"""
-        return dict(
-            (id, account)
-            for id, account in self.get_session_data().items()
-            if "type" not in account or account["type"] == "account"
-        )
-
-    def get_session_data(self):
-        """Get all session objects (account or SSH identities)."""
-        result = api.get_session_data(self.signing_keypair, self.env)
-        data = json.loads(crypto.decrypt(result["data"], self.key))
-        if data["appVersion"] != self.app_version:
-            self.app_version = data["appVersion"]
-            with open(Path(click.get_app_dir(APP_NAME), "session"), "wb") as f:
-                pickle.dump(self, f)
-                f.close()
-        objects = result["accounts"]
-        for id, ciphertext in objects.items():
-            object = json.loads(crypto.decrypt(ciphertext, self.key))
-            if "id" not in object:
-                object["id"] = id
-            objects[id] = object
-        return objects
-
-    def send_push_message(self, message, category, body, **kwargs):
-        """Send a push message to the phone."""
-        apns_payload = {
-            "aps": {
-                "category": category,
-                "mutable-content": 1,
-                "launch-image": "logo",
-                "alert": {"body": body},
-                "sound": "chime.aiff",
-            },
-            "sessionID": self.id,
-            "data": message,
-        }
-        gcm_payload = {"data": {"sessionID": self.id, "message": message}}
-        title = kwargs.get("title", None)
-        if title:
-            apns_payload["aps"]["alert"]["title"] = title
-        data = json.dumps(
-            {
-                "APNS_SANDBOX"
-                if self.env == "dev"
-                else "APNS": json.dumps(apns_payload),
-                "GCM": json.dumps(gcm_payload),
-            }
-        )
-        api.send_to_sns(self.signing_keypair, data, self.arn, self.env)
+        return self.get_session_data()[0]
 
     def send_request(self, request):
         """Send a request to the phone. Adds the request id and timestamp."""
@@ -114,23 +58,10 @@ class Session:
         request["b"] = request_id
         request["z"] = int(time.time() * 1000)
         request = crypto.encrypt(json.dumps(request).encode("utf-8"), self.key)
-        self.send_push_message(
+        self.__send_push_message(
             request, "PASSWORD_REQUEST", "Open to authorize", title="Login request"
         )
-        return self.poll_queue(request_id)
-
-    def poll_queue(self, request_id):
-        """Poll the volatile queue for new messages indefinetely."""
-        messages = self.volatile_queue_handler.start(True)
-        for response in messages:
-            message = json.loads(crypto.decrypt(response["body"], self.key))
-            api.delete_from_volatile_queue(
-                self.signing_keypair, response["receiptHandle"], self.env
-            )
-            if message["b"] == request_id:
-                return message
-            else:
-                return self.poll_queue(request_id)
+        return self.__poll_queue(request_id)
 
     def pairing_status(self):
         """Check if the session has been ended by the app."""
@@ -160,8 +91,75 @@ class Session:
         else:
             request = {"r": 7, "z": int(time.time() * 1000)}
             request = crypto.encrypt(json.dumps(request).encode("utf-8"), self.key)
-            self.send_push_message(request, "END_SESSION", "Session ended by CLI")
+            self.__send_push_message(request, "END_SESSION", "Session ended by CLI")
         os.remove(Path(click.get_app_dir(APP_NAME), "session"))
+
+    def get_session_data(self):
+        """Get all session objects (account or SSH identities)."""
+        session_data = api.get_session_data(self.signing_keypair, self.env)
+        data = json.loads(crypto.decrypt(session_data["data"], self.key))
+        if data["appVersion"] != self.app_version:
+            self.app_version = data["appVersion"]
+            with open(Path(click.get_app_dir(APP_NAME), "session"), "wb") as f:
+                pickle.dump(self, f)
+        accounts = {}
+        identities = []
+        for id, ciphertext in session_data["accounts"].items():
+            object = json.loads(crypto.decrypt(ciphertext, self.key))
+            if "id" not in object:
+                object["id"] = id
+            if "type" in object and object["type"] == "ssh":
+                identities.append(
+                    Key(
+                        object["id"],
+                        crypto.from_base64(object["pubKey"]),
+                        KeyType(object["algorithm"]),
+                        object["name"],
+                    )
+                )
+            else:
+                accounts[id] = object
+        return accounts, identities
+
+    def __send_push_message(self, message, category, body, **kwargs):
+        """Send a push message to the phone."""
+        apns_payload = {
+            "aps": {
+                "category": category,
+                "mutable-content": 1,
+                "launch-image": "logo",
+                "alert": {"body": body},
+                "sound": "chime.aiff",
+            },
+            "sessionID": self.id,
+            "data": message,
+        }
+        gcm_payload = {"data": {"sessionID": self.id, "message": message}}
+        title = kwargs.get("title", None)
+        if title:
+            apns_payload["aps"]["alert"]["title"] = title
+        data = json.dumps(
+            {
+                "APNS_SANDBOX"
+                if self.env == "dev"
+                else "APNS": json.dumps(apns_payload),
+                "GCM": json.dumps(gcm_payload),
+            }
+        )
+        api.send_to_sns(self.signing_keypair, data, self.arn, self.env)
+
+    def __poll_queue(self, request_id):
+        """Poll the volatile queue for new messages indefinetely."""
+        messages = self.volatile_queue_handler.start(True)
+        for response in messages:
+            message = json.loads(crypto.decrypt(response["body"], self.key))
+            api.delete_from_volatile_queue(
+                self.signing_keypair, response["receiptHandle"], self.env
+            )
+            if message["b"] == request_id:
+                return message
+            else:
+                return self.__poll_queue(request_id)
 
     @staticmethod
     def get():
@@ -198,9 +196,9 @@ class Session:
                 f.close()
 
         queue_handler = QueueHandler(pairing_keypair, "dev", "pairing")
-        qr = qrcode.QRCode(
+        qr = QRCode(
             version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            error_correction=ERROR_CORRECT_H,
             box_size=4,
             border=2,
         )

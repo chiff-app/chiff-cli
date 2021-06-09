@@ -30,15 +30,15 @@ def main(daemon, verbose):
 
 
 def start():
-    """Start the Chiff background script."""
+    """Start the Chiff daemon."""
     Path(click.get_app_dir(APP_NAME)).mkdir(parents=True, exist_ok=True)
-    filename = "{dir}/{file}".format(dir=click.get_app_dir(APP_NAME), file=SOCKET_NAME)
+    filename = f"{click.get_app_dir(APP_NAME)}/{SOCKET_NAME}"
     if os.path.exists(filename):
         os.remove(filename)
     org_file_name = os.environ.get("SSH_AUTH_SOCK")
     if org_file_name and org_file_name.endswith(SOCKET_NAME):
         org_file_name = None
-    logging.info("Original filename: {name}".format(name=org_file_name))
+    logging.info(f"Original ssh-agent socket: {org_file_name}")
     sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     sock.bind(filename)
     sock.listen(1)
@@ -52,7 +52,7 @@ def start():
                 org_sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 org_sock.connect(org_file_name)
             else:
-                logging.warn("Original socket not found.")
+                logging.info("Original socket not found.")
             handle_connection(connection, org_sock)
         except Exception as err:
             logging.error(err)
@@ -72,7 +72,6 @@ def forward(data, connection, org_sock):
         )
         org_sock.sendall(data)
         resp = org_sock.recv(2048)
-        print(to_base64(resp))
         connection.sendall(resp)
         return forward(connection.recv(2048), connection, org_sock)
 

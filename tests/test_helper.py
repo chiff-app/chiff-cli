@@ -1,6 +1,21 @@
 import time
 
+
 SEED = b"\xfe<u\xe8\xee\x8bV\x91\x12\xb0\xe0A\xad\x1d\x9b\xb6"
+PAIRING_SEED = (
+    b'\xf6\x8f\xb4\x96H"\x1e\xa0L\x8b>\xc0\xaf\x1c'
+    b"\xf6!\xa0\n\xb9\xe5P\x9f\x11\x88\xaaJ\xe3\xe7\x87d\xa8\xf3"
+)
+PAIR_APP_PRIV_KEY = (
+    b"\x8f\x06\xc0M\x02\x8f\t\xd56\xcc\xfdPK?\xc8\xd5"
+    b"\x91O)\xf6\xed\x85/\x1d\xa6\xac\x00eI\xb6\xbeb"
+)
+PAIR_APP_PUB_KEY_B64 = "8EpIjeBw0Fbr9U4rSUc_M7ZlVaf-OMKgOjQjgKPX6WY"
+PAIR_CLI_PRIV_KEY = (
+    b"V\x97\xa0\xe8\xaa\x98\xf9\xf1\xe90\xd8\xc6\x04iS"
+    b"\x89Q\xc8\x1fX\xcd\x9d\x05\xe8j\t\xa3\xd8\xe9\r:\xb4"
+)
+PAIR_CLI_PUB_KEY_B64 = "sIDpbe88kaBa1_q-TzIjgnMTUV50W13lfmVtcY3XMi0"
 PUB_KEY = (
     b"\xc1\x1f\x83\xfe\xceP\x86\x06\x8d\xcf\xba0\xfc"
     b"\x15-B\xdc\x83\xf3D\xc0r\x0b.\x00\x1c\xf8\x1e~l\x06\x92"
@@ -99,6 +114,12 @@ SSH_SIGNING_REQUEST = (
     b'*1\x8b\xd5lp\x94\xc4Pc\xcf\xf08("\xb2\xabW\x8b_\x00\x00\x00\x00'
 )
 
+TEST_ACCOUNT = {
+    "id": "account_id",
+    "username": "test-username",
+    "sites": [{"name": "example-site", "url": "https://chiff.app"}],
+}
+
 
 def sample_ppd(
     min_length,
@@ -145,3 +166,14 @@ def sample_ppd(
     }
 
     return ppd
+
+
+def api_call(response):
+    def _api_call(*args):
+        return response
+
+    return _api_call
+
+
+def get_sqs_message(message):
+    return api_call({"messages": [{"body": message, "receiptHandle": "bonnie"}]})
