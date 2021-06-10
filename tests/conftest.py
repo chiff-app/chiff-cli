@@ -34,6 +34,11 @@ def session():
 
 
 @pytest.fixture
+def get_test_resource(pytestconfig, request):
+    return pytestconfig.rootpath / "tests" / "resources" / request.param
+
+
+@pytest.fixture
 def get_parameterized_tmp_path(request, session, tmp_path):
     def _get_path(app_name):
         d = tmp_path / app_name

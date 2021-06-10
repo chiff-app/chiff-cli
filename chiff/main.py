@@ -2,13 +2,13 @@ from chiff.setup import chiff_init
 from chiff.ssh_key import Key, KeyType
 from chiff.utils import check_response
 from chiff.crypto import from_base64
+from chiff.utils import get_site_ids
 import click
 import json
 import csv
-import getpass
 
 from pykeepass import PyKeePass
-from construct import ChecksumError
+from pykeepass.exceptions import CredentialsError
 
 
 from chiff import crypto
@@ -126,22 +126,18 @@ def get(id, notes, format_json, skip):
 @click.option(
     "-p",
     "--password",
+    prompt="Enter a the password",
+    hide_input=True,
+    required=True,
+    confirmation_prompt=True,
     help="The password of the account you want to add. Will be prompted"
     "for if not provided",
 )
 @click.option("-n", "--notes", help="The notes of the account you want to add")
 def add(username, url, name, password, notes):
-    """Get data from a currently paired device. Only returns the password by default"""
-    session = get_session(True)
-    if not password:
-        password = click.prompt(
-            "Enter a new password",
-            default="",
-            show_default=False,
-            confirmation_prompt=True,
-            hide_input=True,
-        )
-    site_id = crypto.get_site_ids(url)[0].decode("utf-8")
+    """Add a new account with the provided data."""
+    session = get_session(True)[0]
+    site_id = get_site_ids(url)[0]
     request = {
         "s": site_id,
         "r": MessageType.ADD.value,
@@ -168,6 +164,11 @@ def add(username, url, name, password, notes):
 @click.option(
     "-p",
     "--password",
+    prompt=True,
+    hide_input=True,
+    prompt_required=False,
+    default=None,
+    confirmation_prompt=True,
     help="The password of the account you want to update. Will be prompted for if "
     "argument is not provided",
 )
@@ -175,6 +176,8 @@ def add(username, url, name, password, notes):
 def update(id, username, url, name, password, notes):
     """Get data from a currently paired device. Only returns the password by default"""
     session, accounts = get_session(False)
+    if id not in accounts:
+        raise Exception("Account not found.")
     request = {
         "a": id,
         "r": MessageType.UPDATE_ACCOUNT.value,
@@ -269,13 +272,13 @@ def import_accounts(format, path, skip):
             if skip:
                 next(accounts, None)
             for account in accounts:
-                site_id = crypto.get_site_ids(account["url"])[0]
+                site_id = get_site_ids(account["url"])[0]
                 new_accounts.append(
                     {
                         "u": account["username"],
                         "p": account["password"],
                         "n": account["site_name"],
-                        "s": site_id.decode("utf-8"),
+                        "s": site_id,
                         "l": account["url"],
                         "y": account["notes"],
                     }
@@ -283,42 +286,45 @@ def import_accounts(format, path, skip):
     elif format == "json":
         with click.open_file(path, mode="r") as file:
             for account in json.load(file):
-                site_id = crypto.get_site_ids(account["url"])[0]
+                site_id = get_site_ids(account["url"])[0]
                 new_accounts.append(
                     {
                         "u": account["username"],
                         "p": account["password"],
                         "n": account["title"],
-                        "s": site_id.decode("utf-8"),
+                        "s": site_id,
                         "l": account["url"],
                         "y": account["notes"],
                     }
                 )
     elif format == "kdbx":
-        password = getpass.getpass(
-            prompt="Please provide your .kdbx database password: "
+        password = click.prompt(
+            "Please provide your .kdbx database password",
+            default="",
+            show_default=False,
+            hide_input=True,
         )
         try:
             with PyKeePass(path, password=password) as kp:
                 for account in kp.entries:
-                    site_id = crypto.get_site_ids(account.url)[0]
+                    site_id = get_site_ids(account.url)[0]
                     new_accounts.append(
                         {
                             "u": account.username,
                             "p": account.password,
                             "n": account.title,
-                            "s": site_id.decode("utf-8"),
+                            "s": site_id,
                             "l": account.url,
                             "y": account.notes,
                         }
                     )
-        except ChecksumError:
+        except CredentialsError:
             print("The keepass password appears to be incorrect. Exiting")
             exit(1)
-    click.echo("Sending %d accounts to phone..." % len(new_accounts))
+    click.echo(f"Sending {len(new_accounts)} accounts to phone...")
     response = session.send_bulk_accounts(new_accounts)
     if check_response(response):
-        click.echo("%d accounts successfully imported!" % len(new_accounts))
+        click.echo(f"{len(new_accounts)} accounts successfully imported!")
 
 
 @main.command(name="ssh-keygen", short_help="Generate a new SSH key on your phone.")
@@ -368,7 +374,7 @@ def get_session(skip):
         accounts = session.get_accounts()
         return session, accounts
     else:
-        return session
+        return session, {}
 
 
 if __name__ == "__main__":

@@ -33,6 +33,11 @@ ECDSA_PUB_KEY = (
     b"|Lq\xe9\xee\x15Da\xb2f@\x97\xea\xa9\xf5\xbc7\xce]"
     b"\x9f\x9bG\x87\xbe\r&\xf1e4\xf6\xc6\xa8"
 )
+BASE64_ECDSA_PUB_KEY = (
+    "BAGSrbCjhhqFGuMoFCo6xowzcFL4k2"
+    "spMELv05tn9mJTfExx6e4VR"
+    "GGyZkCX6qn1vDfOXZ-bR4e-DSbxZTT2xqg"
+)
 ECDSA_PRIV_KEY = (
     b"\x04\x01\x92\xad\xb0\xa3\x86\x1a\x85\x1a\xe3"
     b"(\x14*:\xc6\x8c3pR\xf8\x93k)0B\xef\xd3\x9bg\xf6bS|Lq\xe9\xee\x15"

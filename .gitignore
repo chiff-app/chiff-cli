@@ -124,7 +124,4 @@ dmypy.json
 .pyre/
 
 # Output
-*.csv
-*.json
-*.kdbx
 *.kdbx.lock
