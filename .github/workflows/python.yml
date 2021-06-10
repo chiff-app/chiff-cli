@@ -29,9 +29,9 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Run image
-        uses: abatilo/actions-poetry@v2.1.0
-        with:
-          poetry-version: ${{ matrix.poetry-version }}
+      uses: abatilo/actions-poetry@v2.1.0
+      with:
+        poetry-version: ${{ matrix.poetry-version }}
     - name: Install dependencies
       run: |
         poetry install
@@ -45,4 +45,4 @@ jobs:
       run: |
         pytest
     - name: Format
-      - uses: psf/black@stable
+      uses: psf/black@stable
