@@ -91,7 +91,7 @@ def get(id, notes, format_json, skip):
     else:
         request["n"] = "Unknown"
     response = session.send_request(request)
-    if not check_response(response):
+    if not check_response(response, click.echo):
         return
     if notes:
         if "y" in response:
@@ -149,7 +149,7 @@ def add(username, url, name, password, notes):
     if notes:
         request["y"] = notes
     response = session.send_request(request)
-    if check_response(response):
+    if check_response(response, click.echo):
         id = crypto.generic_hash_string(("%s_%s" % (site_id, username)))
         click.echo(f"Account created with id {id}")
 
@@ -194,7 +194,7 @@ def update(id, username, url, name, password, notes):
     if url:
         request["l"] = url
     response = session.send_request(request)
-    if check_response(response):
+    if check_response(response, click.echo):
         click.echo("Account successfully updated.")
 
 
@@ -323,7 +323,7 @@ def import_accounts(format, path, skip):
             exit(1)
     click.echo(f"Sending {len(new_accounts)} accounts to phone...")
     response = session.send_bulk_accounts(new_accounts)
-    if check_response(response):
+    if check_response(response, click.echo):
         click.echo(f"{len(new_accounts)} accounts successfully imported!")
 
 
@@ -351,7 +351,7 @@ def create_ssh_key(name, enclave):
         key_type = KeyType.ED25519
         request["g"] = [-8]  # Cose identifier for EdDSA
     response = session.send_request(request)
-    if check_response(response):
+    if check_response(response, click.echo):
         click.echo("SSH key created:")
         identity = Key(response["a"], from_base64(response["pk"]), key_type, name)
         click.echo(str(identity))

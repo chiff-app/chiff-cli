@@ -154,9 +154,9 @@ def handle_signing(connection, data, org_sock):
         "n": identity.name,
         "c": to_base64(challenge),
     }
-    response = session.send_request(request)
-    logging.info("Request sent to phone.")
-    if check_response(response):
+    logging.info("Sending request to phone.")
+    response = session.send_request(request, 9)
+    if check_response(response, logging.info):
         response = (
             SSHMessageType.SSH_AGENT_SIGN_RESPONSE.raw
             + identity.encode_signature(from_base64(response["s"]))
@@ -165,7 +165,7 @@ def handle_signing(connection, data, org_sock):
         connection.sendall(length_and_data(response))
         return handle_connection(connection, org_sock)
     else:
-        raise Exception("Request denied")
+        raise Exception("Request failed")
 
 
 def handle_connection(connection, org_sock):

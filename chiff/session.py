@@ -52,7 +52,7 @@ class Session:
         """Get all accounts for this session"""
         return self.get_session_data()[0]
 
-    def send_request(self, request):
+    def send_request(self, request, timeout=-1):
         """Send a request to the phone. Adds the request id and timestamp."""
         request_id = randint(0, 1e9)
         request["b"] = request_id
@@ -61,11 +61,11 @@ class Session:
         self.__send_push_message(
             request, "PASSWORD_REQUEST", "Open to authorize", title="Login request"
         )
-        return self.__poll_queue(request_id)
+        return self.__poll_queue(request_id, True, timeout)
 
     def pairing_status(self):
         """Check if the session has been ended by the app."""
-        messages = self.persistent_queue_handler.start(False)
+        messages = self.persistent_queue_handler.start(False, 0)
         for message in messages:
             decrypted_message = json.loads(crypto.decrypt(message["body"], self.key))
             if decrypted_message["t"] == MessageType.END.value:
@@ -148,9 +148,9 @@ class Session:
         )
         api.send_to_sns(self.signing_keypair, data, self.arn, self.env)
 
-    def __poll_queue(self, request_id):
-        """Poll the volatile queue for new messages indefinetely."""
-        messages = self.volatile_queue_handler.start(True)
+    def __poll_queue(self, request_id, slow_polling, timeout):
+        """Poll the volatile queue for new messages."""
+        messages = self.volatile_queue_handler.start(slow_polling, timeout)
         for response in messages:
             message = json.loads(crypto.decrypt(response["body"], self.key))
             api.delete_from_volatile_queue(
@@ -159,7 +159,7 @@ class Session:
             if message["b"] == request_id:
                 return message
             else:
-                return self.__poll_queue(request_id)
+                return self.__poll_queue(request_id, slow_polling, timeout)
 
     @staticmethod
     def get():
@@ -230,7 +230,7 @@ class Session:
         t.daemon = True
         t.start()
 
-        message = queue_handler.start(True)[0]["body"]
+        message = queue_handler.start(True, -1)[0]["body"]
         done = True
         message = crypto.verify(message, pairing_keypair.verify_key)
         message = crypto.decrypt_anonymous(message, priv_key)

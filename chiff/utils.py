@@ -4,21 +4,23 @@ from chiff import crypto
 from urllib.parse import urlparse
 
 from chiff.constants import MessageType
-import click
 import tldextract
 
 
-def check_response(response):
+def check_response(response, logger):
     """Check whether the response is a reject or error message."""
-    if response["t"] == MessageType.REJECT.value:
-        click.echo("Request rejected on phone..")
+    if not response or "t" not in response:
+        logger("Request failed.")
+        return False
+    elif response["t"] == MessageType.REJECT.value:
+        logger("Request rejected on phone..")
         return False
     elif response["t"] == MessageType.ERROR.value:
         if "e" in response:
-            click.echo("Request failed: {error}.".format(error=response["e"]))
+            logger("Request failed: {error}.".format(error=response["e"]))
             return False
         else:
-            click.echo("Request failed.")
+            logger("Request failed.")
             return False
     return True
 

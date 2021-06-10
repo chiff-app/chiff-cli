@@ -1,4 +1,5 @@
 from chiff import api, crypto
+import logging
 
 
 class QueueHandler:
@@ -13,13 +14,17 @@ class QueueHandler:
             endpoint=endpoint,
         )
 
-    def start(self, indefinite):
+    def start(self, slow_polling, timeout):
         """Start checking messages on this queue."""
-        result = api.get_from_sqs(self.keypair, self.url, 20 if indefinite else 0)
+        logging.info(f"Polling queue, {timeout} attempts left.")
+        result = api.get_from_sqs(self.keypair, self.url, 20 if slow_polling else 0)
         messages = result["messages"]
         if result and len(messages) > 0:
             return messages
-        elif indefinite:
-            return self.start(indefinite)
+        elif timeout > 0:
+            return self.start(slow_polling, timeout - 1)
+        elif timeout < 0:
+            # negative means indefinite
+            return self.start(slow_polling, timeout)
         else:
             return []
