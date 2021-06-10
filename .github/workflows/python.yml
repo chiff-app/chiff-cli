@@ -5,6 +5,12 @@ on:
     branches: [ $default-branch ]
   pull_request:
     branches: [ $default-branch ]
+  workflow_dispatch:
+    inputs:
+      name:
+        description: 'Test'
+        required: true
+        default: 'Test'
 
 jobs:
   build:
