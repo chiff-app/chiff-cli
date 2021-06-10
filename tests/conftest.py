@@ -3,6 +3,7 @@ import pickle
 import pytest
 
 from os import path
+from requests_mock import ANY
 from nacl import public, encoding
 
 from chiff.session import Session
@@ -38,6 +39,31 @@ def get_test_resource(pytestconfig, request):
     return pytestconfig.rootpath / "tests" / "resources" / request.param
 
 
+@pytest.fixture(autouse=True)
+def set_temp_path(mocker, tmp_path, session, requests_mock):
+    """Automatically sets the home dir to temporary path with the session."""
+
+    def print_ascii(out=None, tty=False, invert=False):
+        return
+
+    def get_tmp_path(app_name):
+        d = tmp_path / app_name
+        if not path.exists(d):
+            d.mkdir()
+        p = d / "session"
+        with open(p, "wb") as f:
+            pickle.dump(session, f)
+        return d
+
+    mocker.patch("click.get_app_dir", get_tmp_path)
+    mocker.patch("chiff.session.randint", lambda x, y: 42)
+    mocker.patch("chiff.session.QRCode.print_ascii", print_ascii)
+    mocker.patch("chiff.api.get_from_sqs", api_call({"messages": []}))
+    requests_mock.post(ANY, json={})
+    requests_mock.delete(ANY, json={})
+    requests_mock.put(ANY, json={})
+
+
 @pytest.fixture
 def get_parameterized_tmp_path(request, session, tmp_path):
     def _get_path(app_name):
@@ -62,30 +88,6 @@ def get_empty_tmp_path(tmp_path):
         return d
 
     return _get_empty_tmp_path
-
-
-@pytest.fixture
-def get_tmp_path(tmp_path, session):
-    def _get_tmp_path(app_name):
-        d = tmp_path / app_name
-        if not path.exists(d):
-            d.mkdir()
-        p = d / "session"
-        with open(p, "wb") as f:
-            pickle.dump(session, f)
-        return d
-
-    return _get_tmp_path
-
-
-@pytest.fixture
-def empty_api_call():
-    return api_call("{}")
-
-
-@pytest.fixture
-def get_nothing_from_sqs():
-    return api_call({"messages": []})
 
 
 @pytest.fixture

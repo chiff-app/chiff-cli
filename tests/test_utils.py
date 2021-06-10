@@ -5,22 +5,22 @@ from chiff.constants import MessageType
 
 def test_check_response_reject_false():
     response = {"t": MessageType.REJECT.value}
-    assert not check_response(response)
+    assert not check_response(response, print)
 
 
 def test_check_response_error_false():
     response = {"t": MessageType.ERROR.value}
-    assert not check_response(response)
+    assert not check_response(response, print)
 
 
 def test_check_response_error_false_with_error():
     response = {"t": MessageType.ERROR.value, "e": "Something bad.."}
-    assert not check_response(response)
+    assert not check_response(response, print)
 
 
 def test_check_response_true():
     response = {"t": MessageType.LOGIN.value}
-    assert check_response(response)
+    assert check_response(response, print)
 
 
 def test_length_and_data():

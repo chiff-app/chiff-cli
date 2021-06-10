@@ -35,11 +35,9 @@ def test_main():
 def test_status(
     mocker: MockerFixture,
     get_parameterized_tmp_path,
-    get_nothing_from_sqs,
     get_session_data,
     expected,
 ):
-    mocker.patch("chiff.api.get_from_sqs", get_nothing_from_sqs)
     mocker.patch("chiff.session.Session.pairing_status", lambda x: True)
     mocker.patch("click.get_app_dir", get_parameterized_tmp_path)
     mocker.patch("chiff.api.get_session_data", get_session_data)
@@ -62,23 +60,17 @@ def test_pair_session(
     mocker,
     get_parameterized_tmp_path,
     get_pairing_from_sqs,
-    empty_api_call,
     test_input,
     expected,
 ):
-    def print_ascii(out=None, tty=False, invert=False):
-        return
-
     mocker.patch(
         "chiff.crypto.generate_keypair",
         lambda: (public.PrivateKey(PAIR_CLI_PRIV_KEY), PAIR_CLI_PUB_KEY_B64),
     )
     mocker.patch("click.get_app_dir", get_parameterized_tmp_path)
     mocker.patch("chiff.crypto.generate_seed", lambda n: PAIRING_SEED)
-    mocker.patch("chiff.session.QRCode.print_ascii", print_ascii)
     mocker.patch("chiff.api.get_from_sqs", get_pairing_from_sqs)
     mocker.patch("chiff.session.Session.pairing_status", lambda x: True)
-    mocker.patch("chiff.api.send_to_sns", empty_api_call)  # For ending the session
     runner = CliRunner()
     result = runner.invoke(main, ["pair"], input=test_input)
     assert not result.exception
@@ -97,14 +89,10 @@ def test_pair_session(
 def test_unpair_session(
     mocker,
     get_parameterized_tmp_path,
-    get_nothing_from_sqs,
-    empty_api_call,
     test_input,
     expected,
 ):
     mocker.patch("click.get_app_dir", get_parameterized_tmp_path)
-    mocker.patch("chiff.api.get_from_sqs", get_nothing_from_sqs)
-    mocker.patch("chiff.api.send_to_sns", empty_api_call)  # For ending the session
     runner = CliRunner()
     result = runner.invoke(main, ["unpair"], input=test_input)
     assert not result.exception
@@ -166,17 +154,12 @@ def test_unpair_session(
 )
 def test_get_account(
     mocker,
-    get_tmp_path,
     test_input,
     expected,
-    empty_api_call,
     get_session_data,
     response,
     raises,
 ):
-    mocker.patch("click.get_app_dir", get_tmp_path)
-    mocker.patch("chiff.session.randint", lambda x, y: 42)
-    mocker.patch("chiff.api.send_to_sns", empty_api_call)
     mocker.patch("chiff.session.Session.pairing_status", lambda x: True)
     mocker.patch("chiff.api.get_session_data", get_session_data)
     mocker.patch(
@@ -185,7 +168,6 @@ def test_get_account(
             crypto.encrypt(json.dumps(response).encode("utf-8"), SHARED_KEY)
         ),
     )
-    mocker.patch("chiff.api.delete_from_volatile_queue", empty_api_call)
     runner = CliRunner()
     with raises:
         result = runner.invoke(main, test_input)
@@ -223,16 +205,11 @@ def test_get_account(
 )
 def test_add_account(
     mocker,
-    get_tmp_path,
     test_input,
     prompted_input,
     expected,
-    empty_api_call,
     get_session_data,
 ):
-    mocker.patch("click.get_app_dir", get_tmp_path)
-    mocker.patch("chiff.session.randint", lambda x, y: 42)
-    mocker.patch("chiff.api.send_to_sns", empty_api_call)
     mocker.patch("chiff.session.Session.pairing_status", lambda x: True)
     mocker.patch("chiff.api.get_session_data", get_session_data)
     mocker.patch(
@@ -244,7 +221,6 @@ def test_add_account(
             )
         ),
     )
-    mocker.patch("chiff.api.delete_from_volatile_queue", empty_api_call)
     runner = CliRunner()
     result = runner.invoke(
         main,
@@ -280,16 +256,11 @@ def test_add_account(
 )
 def test_update_account(
     mocker,
-    get_tmp_path,
     test_input,
     prompted_input,
     expected,
-    empty_api_call,
     get_session_data,
 ):
-    mocker.patch("click.get_app_dir", get_tmp_path)
-    mocker.patch("chiff.session.randint", lambda x, y: 42)
-    mocker.patch("chiff.api.send_to_sns", empty_api_call)
     mocker.patch("chiff.session.Session.pairing_status", lambda x: True)
     mocker.patch("chiff.api.get_session_data", get_session_data)
     mocker.patch(
@@ -303,7 +274,6 @@ def test_update_account(
             )
         ),
     )
-    mocker.patch("chiff.api.delete_from_volatile_queue", empty_api_call)
     runner = CliRunner()
     with expected:
         result = runner.invoke(
@@ -355,18 +325,12 @@ def test_update_account(
 )
 def test_imports_accounts(
     mocker,
-    get_tmp_path,
     test_input,
     get_test_resource,
     prompted_input,
     expected,
-    empty_api_call,
     get_session_data,
 ):
-    mocker.patch("click.get_app_dir", get_tmp_path)
-    mocker.patch("chiff.session.randint", lambda x, y: 42)
-    mocker.patch("chiff.api.send_to_sns", empty_api_call)
-    mocker.patch("chiff.api.send_bulk_accounts", empty_api_call)
     mocker.patch("chiff.session.Session.pairing_status", lambda x: True)
     mocker.patch("chiff.api.get_session_data", get_session_data)
     mocker.patch(
@@ -378,7 +342,6 @@ def test_imports_accounts(
             )
         ),
     )
-    mocker.patch("chiff.api.delete_from_volatile_queue", empty_api_call)
     runner = CliRunner()
     result = runner.invoke(
         main,
@@ -414,16 +377,11 @@ def test_imports_accounts(
 )
 def test_ssh_keygen(
     mocker,
-    get_tmp_path,
     test_input,
     expected,
     pub_key,
-    empty_api_call,
     get_session_data,
 ):
-    mocker.patch("click.get_app_dir", get_tmp_path)
-    mocker.patch("chiff.session.randint", lambda x, y: 42)
-    mocker.patch("chiff.api.send_to_sns", empty_api_call)
     mocker.patch("chiff.session.Session.pairing_status", lambda x: True)
     mocker.patch("chiff.api.get_session_data", get_session_data)
     mocker.patch(
@@ -442,7 +400,6 @@ def test_ssh_keygen(
             )
         ),
     )
-    mocker.patch("chiff.api.delete_from_volatile_queue", empty_api_call)
     runner = CliRunner()
     result = runner.invoke(
         main,
