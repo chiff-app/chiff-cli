@@ -62,6 +62,7 @@ def set_temp_path(mocker, tmp_path, session, requests_mock):
     requests_mock.post(ANY, json={})
     requests_mock.delete(ANY, json={})
     requests_mock.put(ANY, json={})
+    requests_mock.get(ANY, json={})
 
 
 @pytest.fixture
