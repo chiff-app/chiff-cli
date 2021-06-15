@@ -1,4 +1,5 @@
-# Chiff CLI 
+# Chiff CLI
+
 ![Current version](https://img.shields.io/github/v/tag/chiff-app/chiff-cli?sort=semver) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Python](https://github.com/chiff-app/chiff-cli/actions/workflows/python.yml/badge.svg)](https://github.com/chiff-app/chiff-cli/actions/workflows/python.yml) ![Twitter Follow](https://img.shields.io/twitter/follow/Chiff_App?style=social)
 
 ![Chiff logo](https://chiff.app/assets/images/logo.svg)
@@ -28,7 +29,7 @@ For the _iOS app_, see [chiff-ios](https://github.com/chiff-app/chiff-ios).
 ## Installation
 
 Package is available on PyPi.
-The easiest way is to use [_pipx_](https://github.com/pypa/pipx): `pipx install chiff`. This should install `chiff` and `chiffd` to your shell.
+The easiest way is to use [pipx](https://github.com/pypa/pipx): `pipx install chiff`. This should install `chiff` and `chiffd` to your shell.
 To set up the ssh-agent, you can run `chiff init`. This sets up `chiffd` as a background script and adds the following to your `~/.ssh/config`:
 
 ```
@@ -44,7 +45,7 @@ for hosts that should use Chiff.
 
 ## Installation from source
 
-After cloning the project, you can build it using [_poetry_](https://python-poetry.org).
+After cloning the project, you can build it using [poetry](https://python-poetry.org).
 Run `poetry build` to build the source package and wheel binary. Install the script with `pipx install ./`.This should install `chiff` and `chiffd` to your shell.
 
 ## Usage
