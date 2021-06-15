@@ -1,45 +1,56 @@
 name: Python
 
-on:
-  push:
-    branches: [$default-branch]
-  pull_request:
-    branches: [$default-branch]
-  workflow_dispatch:
-    inputs:
-      name:
-        description: "Test"
-        default: "Test"
+on: [push, pull_request, workflow_dispatch]
 
 jobs:
-  build:
+  linting:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip
+          restore-keys: ${{ runner.os }}-pip
+      - run: python -m pip install black flake8
+      - run: |
+          flake8 chiff tests --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 chiff tests --count --exit-zero --ignore=E203,W503 --max-complexity=10 --max-line-length=88 --statistics
+          black chiff tests --check
+  testing:
+    needs: linting
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
-        python-version: [3.7, 3.8, 3.9]
-
+        python-version: [3.9]
     steps:
       - uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
-      - name: Run image
-        uses: abatilo/actions-poetry@v2.1.0
+      - uses: actions/cache@v2
         with:
-          poetry-version: 1.1.6
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip
+          restore-keys: ${{ runner.os }}-pip
+      - name: Install Poetry
+        run: |
+          pip install poetry==1.1.6
+      - name: Config Poetry
+        run: |
+          poetry config virtualenvs.in-project true
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
       - name: Install dependencies
-        run: |
-          poetry install
-      - name: Lint with flake8
-        run: |
-          # stop the build if there are Python syntax errors or undefined names
-          poetry run flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          poetry run flake8 . --count --exit-zero --ignore=E203,W503 --max-complexity=10 --max-line-length=88 --statistics
-      - name: Test with pytest
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+      - name: Run tests
         run: |
           poetry run pytest --cov=chiff --cov-report=xml --cov-report=html
-      - name: Format
-        uses: psf/black@stable
