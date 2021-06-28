@@ -30,6 +30,14 @@ For the _iOS app_, see [chiff-ios](https://github.com/chiff-app/chiff-ios).
 
 Package is available on PyPi.
 The easiest way is to use [pipx](https://github.com/pypa/pipx): `pipx install chiff`. This should install `chiff` and `chiffd` to your shell.
+
+## Installation from source
+
+After cloning the project, you can build it using [poetry](https://python-poetry.org).
+Run `poetry build` to build the source package and wheel binary. Install the script with `pipx install ./`.This should install `chiff` and `chiffd` to your shell.
+
+## Set-up
+
 To set up the ssh-agent, you can run `chiff init`. This sets up `chiffd` as a background script and adds the following to your `~/.ssh/config`:
 
 ```
@@ -43,10 +51,14 @@ You can also set this up manually. For example, if you only want to use Chiff fo
 
 for hosts that should use Chiff.
 
-## Installation from source
+### Get the Chiff app
 
-After cloning the project, you can build it using [poetry](https://python-poetry.org).
-Run `poetry build` to build the source package and wheel binary. Install the script with `pipx install ./`.This should install `chiff` and `chiffd` to your shell.
+Get the Chiff app on App Store or Play Store:
+
+[<img src="https://chiff.app/assets/images/app-store.svg" />](https://apps.apple.com/app/id1361749715)
+[<img src="https://chiff.app/assets/images/play-store.svg" height="40" />](https://play.google.com/store/apps/details?id=io.keyn.keyn)
+
+Follow the onboarding instructions in the app. When the app asks you to pair with your browser, you can pair with this CLI instead (see [Pairing](#pairing)).
 
 ## Usage
 
@@ -170,7 +182,7 @@ Import from a json file with `chiff import -f kdbx -p <path>`. You will have to 
 
 ### I'd like to forward requests to another SSH agent
 
-By default, Chiff forwards the requests to the ssh-agent that is present in the `SSH_AUTH_SOCK`, environment variable. If you have changed this in `~/.bashrc` or equivalent, it may not be available to the background process. You can adjust the LaunchAgent plist or systemd service manually to set. For example, if you would like to use Chiff in combination with [secretive][https://github.com/maxgoedjen/secretive], you add the following to `~/Library/LaunchAgents/co.chiff.chiffd.plist`:
+By default, Chiff forwards the requests to the ssh-agent that is present in the `SSH_AUTH_SOCK`, environment variable. If you have changed this in `~/.bashrc` or equivalent, it may not be available to the background process. You can adjust the LaunchAgent plist or systemd service manually to set. For example, if you would like to use Chiff in combination with [secretive](https://github.com/maxgoedjen/secretive), you add the following to `~/Library/LaunchAgents/co.chiff.chiffd.plist`:
 
 ```xml
 <key>EnvironmentVariables</key>
