@@ -22,8 +22,8 @@ All sensitive data is stored encrypted on your phone. When needed, it is decrypt
 ## Related projects
 
 This is the repository for the _CLI_.  
-For the _Android app_, see [chiff-android](https://github.com/chiff-app/chiff-android).  
-For the _Browser extension_, see [chiff-browser](https://github.com/chiff-app/chiff-browser).  
+For the _Android app_, see [chiff-android](https://github.com/chiff-app/chiff-android) (_Coming soon_).  
+For the _Browser extension_, see [chiff-browser](https://github.com/chiff-app/chiff-browser) (_Coming soon_).  
 For the _iOS app_, see [chiff-ios](https://github.com/chiff-app/chiff-ios).
 
 ## Installation
