@@ -8,6 +8,7 @@ from pathlib import Path
 import socket
 import os
 import logging
+import errno
 
 from chiff.constants import APP_NAME, SOCKET_NAME, MessageType, SSHMessageType
 
@@ -54,6 +55,11 @@ def start():
             else:
                 logging.info("Original socket not found.")
             handle_connection(connection, org_sock)
+        except OSError as err:
+            if err.errno == errno.EPIPE:
+                logging.error(err)
+            else:
+                raise
         except Exception as err:
             logging.error(err)
             connection.sendall(length_and_data(SSHMessageType.SSH_AGENT_FAILURE.raw))
