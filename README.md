@@ -1,6 +1,6 @@
 # Chiff CLI
 
-![Current version](https://img.shields.io/github/v/tag/chiff-app/chiff-cli?sort=semver) ![PyPI](https://img.shields.io/pypi/v/chiff) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Python](https://github.com/chiff-app/chiff-cli/actions/workflows/python.yml/badge.svg)](https://github.com/chiff-app/chiff-cli/actions/workflows/test.yml) ![Twitter Follow](https://img.shields.io/twitter/follow/Chiff_App?style=social)
+![Current version](https://img.shields.io/github/v/tag/chiff-app/chiff-cli?sort=semver) ![PyPI](https://img.shields.io/pypi/v/chiff) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Python](https://github.com/chiff-app/chiff-cli/actions/workflows/test.yml/badge.svg)](https://github.com/chiff-app/chiff-cli/actions/workflows/test.yml) ![Twitter Follow](https://img.shields.io/twitter/follow/Chiff_App?style=social)
 
 ![Chiff logo](https://chiff.app/assets/images/logo.svg)
 
