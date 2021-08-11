@@ -5,10 +5,24 @@ description = "Chiff command-line client."
 authors = ["bas-d <7903735+bas-d@users.noreply.github.com>"]
 license = "GPL-3.0-or-later"
 readme = "README.md"
-homepage = "https://chiff.dev"
+homepage = "https://chiff.app"
 repository = "https://github.com/chiff-app/chiff-cli"
 include = [
     "LICENSE"
+]
+keywords = [
+    "security",
+    "ssh",
+    "password"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Console",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Security",
+    "Topic :: System :: Systems Administration"
 ]
 
 [tool.poetry.dependencies]
