@@ -17,14 +17,13 @@ With Chiff, you can leverage the biometric capabilities and secure storage of yo
 
 All sensitive data is stored encrypted on your phone. When needed, it is decrypted (by authenticating to your phone with biometrics) and sent to the browser/cli, where it is filled in the website. An end-to-end encrypted channel is established between browser/cli by scanning a QR-code. This means confidentiality is ensured, even though the server (mainly serving as message broker and backup storage) is modelled as an untrusted entity.
 
-<!-- For a more detailed analysis of the security of this model, please see [TODO](https://chiff.app/todo) -->
-
 ## Related projects
 
 This is the repository for the _CLI_.  
 For the _Android app_, see [chiff-android](https://github.com/chiff-app/chiff-android) (_Coming soon_).  
 For the _Browser extension_, see [chiff-browser](https://github.com/chiff-app/chiff-browser) (_Coming soon_).  
 For the _iOS app_, see [chiff-ios](https://github.com/chiff-app/chiff-ios).
+For the _iOS app core_, see [chiff-ios](https://github.com/chiff-app/chiff-ios-core).
 
 ## Installation
 
@@ -172,11 +171,6 @@ Import from a json file with `chiff import -f json -p <path>`. The data is expec
 #### Importing from kdbx
 
 Import from a json file with `chiff import -f kdbx -p <path>`. You will have to enter your password. Note that Chiff relies on the URL being present and correct, so it's necessary to make sure each account has the URL set, as well as the title, username and password. Notes are optional.
-
-## TODO
-
-- Add better support for AWS, Google Cloud, etc.
-- Add export function for csv, json and kdbx
 
 ## FAQ
 
