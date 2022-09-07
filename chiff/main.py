@@ -235,6 +235,40 @@ def status():
         click.echo("There is no active session.")
 
 
+@main.command(short_help="Gets all accounts of the current session.")
+@click.option(
+    "-a",
+    "--alfred",
+    is_flag=True,
+    help="Return account in JSON format that Alfred understands",
+)
+def accounts(alfred):
+    session = Session.get()
+    accounts, _ = session.get_session_data()
+    if alfred:
+        accounts = list(
+            map(
+                lambda x: {
+                    "uid": x["id"],
+                    "title": x["sites"][0]["name"],
+                    "subtitle": x["username"],
+                    "match": "%s %s %s"
+                    % (
+                        x["sites"][0]["name"],
+                        x["sites"][0]["url"],
+                        x["username"],
+                    ),
+                    "arg": x["id"],
+                },
+                accounts.values(),
+            )
+        )
+        output = {"items": accounts}
+        print(json.dumps(output))
+    else:
+        print(json.dumps(accounts))
+
+
 @main.command(
     name="import", short_help="Import accounts from a csv, json or kdbx file."
 )
