@@ -20,6 +20,7 @@ from pathlib import Path
 from chiff.constants import APP_NAME
 
 
+@click.version_option()
 @click.group()
 def main():
     """This application can be paired with the Chiff app for iOS or Android,
