@@ -188,6 +188,10 @@ def handle_connection(connection, org_sock):
     elif org_sock:
         # Chiff doesn't support this request type, delegate to original SSH agent.
         return forward(data, connection, org_sock)
+    else:
+        # Chiff doesn't support this request type, send failure message.
+        connection.sendall(length_and_data(SSHMessageType.SSH_AGENT_FAILURE.raw))
+        return handle_connection(connection, org_sock)
 
 
 if __name__ == "__main__":
