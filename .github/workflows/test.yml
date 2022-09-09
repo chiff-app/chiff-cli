@@ -1,6 +1,12 @@
-name: Python
+name: Test
 
-on: [push, pull_request, workflow_dispatch]
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
 
 jobs:
   linting:
@@ -54,3 +60,4 @@ jobs:
       - name: Run tests
         run: |
           poetry run pytest --cov=chiff --cov-report=xml --cov-report=html
+

@@ -1,6 +1,6 @@
 # Chiff CLI
 
-![Current version](https://img.shields.io/github/v/tag/chiff-app/chiff-cli?sort=semver) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Python](https://github.com/chiff-app/chiff-cli/actions/workflows/python.yml/badge.svg)](https://github.com/chiff-app/chiff-cli/actions/workflows/python.yml) ![Twitter Follow](https://img.shields.io/twitter/follow/Chiff_App?style=social)
+![Current version](https://img.shields.io/github/v/tag/chiff-app/chiff-cli?sort=semver) ![PyPI](https://img.shields.io/pypi/v/chiff) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Python](https://github.com/chiff-app/chiff-cli/actions/workflows/test.yml/badge.svg)](https://github.com/chiff-app/chiff-cli/actions/workflows/test.yml) ![Twitter Follow](https://img.shields.io/twitter/follow/Chiff_App?style=social)
 
 ![Chiff logo](https://chiff.app/assets/images/logo.svg)
 
@@ -33,7 +33,7 @@ The easiest way is to use [pipx](https://github.com/pypa/pipx): `pipx install ch
 ## Installation from source
 
 After cloning the project, you can build it using [poetry](https://python-poetry.org).
-Run `poetry build` to build the source package and wheel binary. Install the script with `pipx install ./`.This should install `chiff` and `chiffd` to your shell.
+Run `poetry build` to build the source package and wheel binary. Install the script with `pipx install ./`. This should install `chiff` and `chiffd` to your shell.
 
 ## Set-up
 
@@ -63,7 +63,7 @@ Follow the onboarding instructions in the app. When the app asks you to pair wit
 
 ### Pairing
 
-The first thing you should do is pair with your phone with `chiff pair`. This generate a QR-code that you can scan with
+The first thing you should do is pair with your phone with `chiff pair`. This generates a QR-code that you can scan with
 the Chiff app. After pairing, you can see your accounts with `chiff status`.
 You can pair with one app at the same time, so if you want to pair with another phone, run `chiff unpair` to delete the
 session.
