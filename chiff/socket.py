@@ -185,6 +185,10 @@ def handle_connection(connection, org_sock):
         return handle_identities_request(connection, data, org_sock)
     elif type == SSHMessageType.SSH_AGENTC_SIGN_REQUEST.value:
         return handle_signing(connection, data, org_sock)
+    elif type == SSHMessageType.SSH_AGENTC_EXTENSION.value:
+        # Chiff doesn't support extensions.
+        connection.sendall(length_and_data(SSHMessageType.SSH_AGENT_FAILURE.raw))
+        return handle_connection(connection, org_sock)
     elif org_sock:
         # Chiff doesn't support this request type, delegate to original SSH agent.
         return forward(data, connection, org_sock)
