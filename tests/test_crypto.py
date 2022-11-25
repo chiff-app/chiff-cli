@@ -61,7 +61,7 @@ def test_decrypt_anonymous():
     key = public.PrivateKey(SEED + SEED)
     box = public.SealedBox(key.public_key)
     ciphertext = box.encrypt(message)
-    return crypto.decrypt_anonymous(ciphertext, key) == message
+    assert crypto.decrypt_anonymous(ciphertext, key) == message
 
 
 def test_create_signing_keypair():
