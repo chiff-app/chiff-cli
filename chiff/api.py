@@ -112,7 +112,7 @@ def sign_request(message, keypair):
 
 
 def get_endpoint(env):
-    if env == "prod":
-        return "v1"
+    if env == "dev":
+        return "dev"
     else:
-        return env
+        return "v1"
