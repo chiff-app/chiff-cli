@@ -1,0 +1,26 @@
+name: chiff
+summary: Chiff command-line client.
+description: |
+  Chiff is a tool that allows you to store secrets in the secure storage of your phone and retrieve them when you need them by authorizing a request.
+  You can pair the app with multiple clients (browser extension or shell).
+version: git
+grade: devel
+confinement: devmode
+base: core20
+architectures:
+  - build-on: [arm64, armhf, amd64]
+
+apps:
+  chiff:
+    command: bin/chiff
+    plugs: [home, network, network-bind]
+  chiffd:
+    command: bin/chiffd
+    daemon: simple
+    plugs: [home, network, network-bind]
+
+parts:
+  chiff:
+    plugin: python
+    python-packages:
+      - chiff
