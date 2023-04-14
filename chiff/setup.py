@@ -1,4 +1,5 @@
 import io
+import os
 import click
 from chiff.constants import (
     APP_NAME,
@@ -66,8 +67,9 @@ def setup_boot_darwin(app_dir):
 
 
 def setup_boot_linux():
-    systemd_path = Path.home() / ".config" / "systemd" / "user" / "chiff.service"
-    with click.open_file(systemd_path, mode="w+") as f:
+    systemd_path = Path.home() / ".config" / "systemd" / "user"
+    os.makedirs(systemd_path, exist_ok=True)
+    with click.open_file(systemd_path / "chiff.service", mode="w+") as f:
         f.write(systemd_service.format(path=Path(".local", "bin", "chiffd")))
     subprocess.run(["systemctl", "--user", "--now", "enable", "chiff"])
     click.echo("Chiff daemon installed!")
