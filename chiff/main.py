@@ -368,8 +368,8 @@ def import_accounts(format, path, skip):
     "-e",
     "--enclave",
     is_flag=True,
-    help="Whether the key should be created in the Secure Enclave (only applies to iOS). \
-        This implies that you will be unable to recover the key with your seed!",
+    help="Whether the key should be created in the Secure Enclave (only applies to \
+        iOS). This implies that you will be unable to recover the key with your seed!",
 )
 def create_ssh_key(name, enclave):
     click.echo(f"Requesting to generate new SSH key {name}")
