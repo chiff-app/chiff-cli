@@ -7,14 +7,8 @@ license = "GPL-3.0-or-later"
 readme = "README.md"
 homepage = "https://chiff.app"
 repository = "https://github.com/chiff-app/chiff-cli"
-include = [
-    "LICENSE"
-]
-keywords = [
-    "security",
-    "ssh",
-    "password"
-]
+include = ["LICENSE"]
+keywords = ["security", "ssh", "password"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Console",
@@ -22,11 +16,11 @@ classifiers = [
     "Operating System :: MacOS",
     "Operating System :: POSIX :: Linux",
     "Topic :: Security",
-    "Topic :: System :: Systems Administration"
+    "Topic :: System :: Systems Administration",
 ]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.8"
 tldextract = "^3.3.1"
 pykeepass = "^4.0"
 pynacl = "^1.4"
@@ -52,4 +46,3 @@ chiffd = "chiff.socket:main"
 [build-system]
 requires = ["poetry>=0.12"]
 build-backend = "poetry.masonry.api"
-
