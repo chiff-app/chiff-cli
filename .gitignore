@@ -125,3 +125,5 @@ dmypy.json
 
 # Output
 *.kdbx.lock
+
+.DS_Store

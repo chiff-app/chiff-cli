@@ -140,9 +140,9 @@ class Session:
             apns_payload["aps"]["alert"]["title"] = title
         data = json.dumps(
             {
-                "APNS_SANDBOX"
-                if self.env == "dev"
-                else "APNS": json.dumps(apns_payload),
+                "APNS_SANDBOX" if self.env == "dev" else "APNS": json.dumps(
+                    apns_payload
+                ),
                 "GCM": json.dumps(gcm_payload),
             }
         )
