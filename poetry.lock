@@ -979,22 +979,22 @@ dev = ["pre-commit", "pytest-asyncio", "tox"]
 
 [[package]]
 name = "python-daemon"
-version = "2.3.2"
+version = "3.0.1"
 description = "Library to implement a well-behaved Unix daemon process."
 optional = false
 python-versions = ">=3"
 files = [
-    {file = "python-daemon-2.3.2.tar.gz", hash = "sha256:3deeb808e72b6b89f98611889e11cc33754f5b2c1517ecfa1aaf25f402051fb5"},
-    {file = "python_daemon-2.3.2-py3-none-any.whl", hash = "sha256:01d26358598f8c3f5fc6de553e2f3080ffc59cf89102d7ee8098f33c72b3c04c"},
+    {file = "python-daemon-3.0.1.tar.gz", hash = "sha256:6c57452372f7eaff40934a1c03ad1826bf5e793558e87fef49131e6464b4dae5"},
+    {file = "python_daemon-3.0.1-py3-none-any.whl", hash = "sha256:42bb848a3260a027fa71ad47ecd959e471327cb34da5965962edd5926229f341"},
 ]
 
 [package.dependencies]
 docutils = "*"
 lockfile = ">=0.10"
-setuptools = "*"
+setuptools = ">=62.4.0"
 
 [package.extras]
-devel = ["coverage", "docutils", "testscenarios (>=0.4)", "testtools", "twine"]
+devel = ["coverage", "docutils", "isort", "testscenarios (>=0.4)", "testtools", "twine"]
 test = ["coverage", "docutils", "testscenarios (>=0.4)", "testtools"]
 
 [[package]]
@@ -1089,13 +1089,13 @@ testing = ["build[virtualenv] (>=1.0.3)", "filelock (>=3.4.0)", "importlib-metad
 
 [[package]]
 name = "tabulate"
-version = "0.8.10"
+version = "0.9.0"
 description = "Pretty-print tabular data"
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+python-versions = ">=3.7"
 files = [
-    {file = "tabulate-0.8.10-py3-none-any.whl", hash = "sha256:0ba055423dbaa164b9e456abe7920c5e8ed33fcc16f6d1b2f2d152c8e1e8b4fc"},
-    {file = "tabulate-0.8.10.tar.gz", hash = "sha256:6c57f3f3dd7ac2782770155f3adb2db0b1a269637e42f27599925e64b114f519"},
+    {file = "tabulate-0.9.0-py3-none-any.whl", hash = "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f"},
+    {file = "tabulate-0.9.0.tar.gz", hash = "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c"},
 ]
 
 [package.extras]
@@ -1103,13 +1103,13 @@ widechars = ["wcwidth"]
 
 [[package]]
 name = "tldextract"
-version = "3.5.0"
+version = "5.1.2"
 description = "Accurately separates a URL's subdomain, domain, and public suffix, using the Public Suffix List (PSL). By default, this includes the public ICANN TLDs and their exceptions. You can optionally support the Public Suffix List's private domains as well."
 optional = false
-python-versions = ">=3.7"
+python-versions = ">=3.8"
 files = [
-    {file = "tldextract-3.5.0-py3-none-any.whl", hash = "sha256:2cb271ca8d06ea1630a1361b58edad14e0cf81f34ce3c90b052854528fe2a281"},
-    {file = "tldextract-3.5.0.tar.gz", hash = "sha256:4df1c65b95be61d59428e8611e955e54e6f1d4483d3e8d5733d3a9062155e910"},
+    {file = "tldextract-5.1.2-py3-none-any.whl", hash = "sha256:4dfc4c277b6b97fa053899fcdb892d2dc27295851ab5fac4e07797b6a21b2e46"},
+    {file = "tldextract-5.1.2.tar.gz", hash = "sha256:c9e17f756f05afb5abac04fe8f766e7e70f9fe387adb1859f0f52408ee060200"},
 ]
 
 [package.dependencies]
@@ -1117,6 +1117,10 @@ filelock = ">=3.0.8"
 idna = "*"
 requests = ">=2.1.0"
 requests-file = ">=1.4"
+
+[package.extras]
+release = ["build", "twine"]
+testing = ["black", "mypy", "pytest", "pytest-gitignore", "pytest-mock", "responses", "ruff", "syrupy", "tox", "types-filelock", "types-requests"]
 
 [[package]]
 name = "tomli"
@@ -1160,4 +1164,4 @@ zstd = ["zstandard (>=0.18.0)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8.1"
-content-hash = "b092d817445c0b96c12e00bdae771ac8c5ba43ff0ce2661ef2098b2c21528f3a"
+content-hash = "b8dd77dc8709543c3dc6ccd0728dbda9cfaf6d4a6a870d9dc0fe841db6ee8b5e"
