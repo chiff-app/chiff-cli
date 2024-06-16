@@ -1,10 +1,9 @@
 {
-    "python.linting.pylintEnabled": false,
-    "python.linting.enabled": true,
-    "python.linting.flake8Enabled": true,
-    "python.formatting.provider": "black",
+    "[python]": {
+        "editor.defaultFormatter": "ms-python.black-formatter"
+    },
     "editor.formatOnSave": true,
-    "python.linting.flake8Args": [
+    "flake8.args": [
         "--max-line-length=88",
         "--ignore=E203,W503"
     ],
@@ -15,6 +14,5 @@
         "xml:coverage.xml"
     ],
     "python.testing.unittestEnabled": false,
-    "python.testing.nosetestsEnabled": false,
     "python.testing.pytestEnabled": true,
 }
