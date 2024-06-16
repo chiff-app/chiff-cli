@@ -365,7 +365,7 @@ def test_imports_accounts(
             BASE64_PUB_KEY,
         ),
         (
-            ["Test", "-e"],
+            ["Test", "-a", "ecdsa256"],
             "SSH key created:\necdsa-sha2-nistp256 "
             + "AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIb"
             + "mlzdHAyNTYAAABBBAGSrbCjhhqFGuMoFCo6x"
