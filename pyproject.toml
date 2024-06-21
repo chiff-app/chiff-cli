@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "chiff"
-version = "0.2.2"
+version = "0.3.0"
 description = "Chiff command-line client."
 authors = ["bas-d <7903735+bas-d@users.noreply.github.com>"]
 license = "GPL-3.0-or-later"

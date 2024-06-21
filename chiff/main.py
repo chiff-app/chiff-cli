@@ -322,9 +322,10 @@ def import_accounts(format, path, skip):
             KeyType.ECDSA256.name.lower(),
         ]
     ),
-    help="The algorithm to use. On iOS, ECDSA256 is generated in the secure enclave \
-        iOS). This implies that you will be unable to recover the key with your seed! \
-        This also applies to Android to maintain interoperability. Default is ed25519.",
+    help="The algorithm to use. On iOS, ECDSA256 is generated in the secure enclave. "
+    "This implies that you will be unable to recover the key with your seed! "
+    "This also applies to Android to maintain interoperability. "
+    "Default algorithm is ed25519.",
 )
 def create_ssh_key(name, algorithm):
     click.echo(f"Requesting to generate new SSH key {name}")
