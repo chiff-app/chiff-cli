@@ -107,8 +107,10 @@ def handle_identities_request(connection, data, org_sock):
     session = Session.get()
     if not session:
         if org_sock:
+            logging.info("No active session, forwarding request.")
             return forward(data, connection, org_sock)
         else:
+            logging.info("No active session and no original agent, ending.")
             return
     identities = session.get_ssh_identities()
     logging.info("Obtained {count} identities from Chiff".format(count=len(identities)))

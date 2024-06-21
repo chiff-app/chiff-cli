@@ -300,62 +300,11 @@ def import_accounts(format, path, skip):
     session = get_session(False)[0]
     new_accounts = []
     if format == "csv":
-        with click.open_file(path, mode="r") as file:
-            accounts = csv.DictReader(
-                file, fieldnames=["site_name", "url", "username", "password", "notes"]
-            )
-            if skip:
-                next(accounts, None)
-            for account in accounts:
-                site_id = get_site_ids(account["url"])[0]
-                new_accounts.append(
-                    {
-                        "u": account["username"],
-                        "p": account["password"],
-                        "n": account["site_name"],
-                        "s": site_id,
-                        "l": account["url"],
-                        "y": account["notes"],
-                    }
-                )
+        new_accounts.extend(parse_csv(path, skip))
     elif format == "json":
-        with click.open_file(path, mode="r") as file:
-            for account in json.load(file):
-                site_id = get_site_ids(account["url"])[0]
-                new_accounts.append(
-                    {
-                        "u": account["username"],
-                        "p": account["password"],
-                        "n": account["title"],
-                        "s": site_id,
-                        "l": account["url"],
-                        "y": account["notes"],
-                    }
-                )
+        new_accounts.extend(parse_json(path))
     elif format == "kdbx":
-        password = click.prompt(
-            "Please provide your .kdbx database password",
-            default="",
-            show_default=False,
-            hide_input=True,
-        )
-        try:
-            with PyKeePass(path, password=password) as kp:
-                for account in kp.entries:
-                    site_id = get_site_ids(account.url)[0]
-                    new_accounts.append(
-                        {
-                            "u": account.username,
-                            "p": account.password,
-                            "n": account.title,
-                            "s": site_id,
-                            "l": account.url,
-                            "y": account.notes,
-                        }
-                    )
-        except CredentialsError:
-            print("The keepass password appears to be incorrect. Exiting")
-            exit(1)
+        new_accounts.extend(parse_kdbx(path))
     click.echo(f"Sending {len(new_accounts)} accounts to phone...")
     response = session.send_bulk_accounts(new_accounts)
     if check_response(response, click.echo):
@@ -365,13 +314,20 @@ def import_accounts(format, path, skip):
 @main.command(name="ssh-keygen", short_help="Generate a new SSH key on your phone.")
 @click.option("-n", "--name", required=True, help="The label for this SSH key.")
 @click.option(
-    "-e",
-    "--enclave",
-    is_flag=True,
-    help="Whether the key should be created in the Secure Enclave (only applies to iOS). \
-        This implies that you will be unable to recover the key with your seed!",
+    "-a",
+    "--algorithm",
+    type=click.Choice(
+        [
+            KeyType.ED25519.name.lower(),
+            KeyType.ECDSA256.name.lower(),
+        ]
+    ),
+    help="The algorithm to use. On iOS, ECDSA256 is generated in the secure enclave. "
+    "This implies that you will be unable to recover the key with your seed! "
+    "This also applies to Android to maintain interoperability. "
+    "Default algorithm is ed25519.",
 )
-def create_ssh_key(name, enclave):
+def create_ssh_key(name, algorithm):
     click.echo(f"Requesting to generate new SSH key {name}")
     session = get_session(False)[0]
     request = {
@@ -379,7 +335,7 @@ def create_ssh_key(name, enclave):
         "n": name,
     }
     key_type = None
-    if enclave:
+    if algorithm == KeyType.ECDSA256.name.lower():
         key_type = KeyType.ECDSA256
         request["g"] = [-7]  # Cose identifier for ECDSA256
     else:
@@ -393,6 +349,75 @@ def create_ssh_key(name, enclave):
 
 
 main.add_command(chiff_init, "init")
+
+
+def parse_csv(path, skip):
+    new_accounts = []
+    with click.open_file(path, mode="r") as file:
+        accounts = csv.DictReader(
+            file, fieldnames=["site_name", "url", "username", "password", "notes"]
+        )
+        if skip:
+            next(accounts, None)
+        for account in accounts:
+            site_id = get_site_ids(account["url"])[0]
+            new_accounts.append(
+                {
+                    "u": account["username"],
+                    "p": account["password"],
+                    "n": account["site_name"],
+                    "s": site_id,
+                    "l": account["url"],
+                    "y": account["notes"],
+                }
+            )
+    return new_accounts
+
+
+def parse_json(path):
+    new_accounts = []
+    with click.open_file(path, mode="r") as file:
+        for account in json.load(file):
+            site_id = get_site_ids(account["url"])[0]
+            new_accounts.append(
+                {
+                    "u": account["username"],
+                    "p": account["password"],
+                    "n": account["title"],
+                    "s": site_id,
+                    "l": account["url"],
+                    "y": account["notes"],
+                }
+            )
+    return new_accounts
+
+
+def parse_kdbx(path):
+    new_accounts = []
+    password = click.prompt(
+        "Please provide your .kdbx database password",
+        default="",
+        show_default=False,
+        hide_input=True,
+    )
+    try:
+        with PyKeePass(path, password=password) as kp:
+            for account in kp.entries:
+                site_id = get_site_ids(account.url)[0]
+                new_accounts.append(
+                    {
+                        "u": account.username,
+                        "p": account.password,
+                        "n": account.title,
+                        "s": site_id,
+                        "l": account.url,
+                        "y": account.notes,
+                    }
+                )
+        return new_accounts
+    except CredentialsError:
+        print("The keepass password appears to be incorrect. Exiting")
+        exit(1)
 
 
 def get_session(skip):
