@@ -54,7 +54,7 @@ class Session:
 
     def send_request(self, request, timeout=-1):
         """Send a request to the phone. Adds the request id and timestamp."""
-        request_id = randint(0, 1e9)
+        request_id = randint(0, 10**9)
         request["b"] = request_id
         request["z"] = int(time.time() * 1000)
         request = crypto.encrypt(json.dumps(request).encode("utf-8"), self.key)
