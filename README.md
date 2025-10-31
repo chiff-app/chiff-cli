@@ -1,11 +1,14 @@
+> ## ⚠️ End of Chiff
+>
+> After much consideration, I have decided to discontinue the development of Chiff. Read more about this decision in the [blog post](https://www.chiff.app/articles/2025/10/31/end-of-chiff/).
+
 # Chiff CLI
 
 ![Current version](https://img.shields.io/github/v/tag/chiff-app/chiff-cli?sort=semver) ![PyPI](https://img.shields.io/pypi/v/chiff) [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black) [![Python](https://github.com/chiff-app/chiff-cli/actions/workflows/test.yml/badge.svg)](https://github.com/chiff-app/chiff-cli/actions/workflows/test.yml) ![Twitter Follow](https://img.shields.io/twitter/follow/Chiff_App?style=social)
 
 ![Chiff logo](https://chiff.app/assets/images/logo.svg)
 
-Chiff is a tool that allows you to store secrets in the secure storage of your phone and retrieve them when you need them by authorizing a request.
-You can pair the app with multiple clients (browser extension or shell).
+Chiff is a tool that allows you to store secrets in the secure storage of your phone and retrieve them when you need them by authorizing a request. You can pair the app with multiple clients (browser extension or shell).
 
 ## Motivation
 
@@ -22,18 +25,15 @@ All sensitive data is stored encrypted on your phone. When needed, it is decrypt
 This is the repository for the _CLI_.  
 For the _Android app_, see [chiff-android](https://github.com/chiff-app/chiff-android) (_Coming soon_).  
 For the _Browser extension_, see [chiff-browser](https://github.com/chiff-app/chiff-browser) (_Coming soon_).  
-For the _iOS app_, see [chiff-ios](https://github.com/chiff-app/chiff-ios).
-For the _iOS app core_, see [chiff-ios](https://github.com/chiff-app/chiff-ios-core).
+For the _iOS app_, see [chiff-ios](https://github.com/chiff-app/chiff-ios). For the _iOS app core_, see [chiff-ios](https://github.com/chiff-app/chiff-ios-core).
 
 ## Installation
 
-Package is available on PyPi.
-The easiest way is to use [pipx](https://github.com/pypa/pipx): `pipx install chiff`. This should install `chiff` and `chiffd` to your shell.
+Package is available on PyPi. The easiest way is to use [pipx](https://github.com/pypa/pipx): `pipx install chiff`. This should install `chiff` and `chiffd` to your shell.
 
 ## Installation from source
 
-After cloning the project, you can build it using [poetry](https://python-poetry.org).
-Run `poetry build` to build the source package and wheel binary. Install the script with `pipx install ./`. This should install `chiff` and `chiffd` to your shell.
+After cloning the project, you can build it using [poetry](https://python-poetry.org). Run `poetry build` to build the source package and wheel binary. Install the script with `pipx install ./`. This should install `chiff` and `chiffd` to your shell.
 
 ## Set-up
 
@@ -54,8 +54,7 @@ for hosts that should use Chiff.
 
 Get the Chiff app on App Store or Play Store:
 
-[<img src="https://chiff.app/assets/images/app-store.svg" />](https://apps.apple.com/app/id1361749715)
-[<img src="https://chiff.app/assets/images/play-store.svg" height="40" />](https://play.google.com/store/apps/details?id=io.keyn.keyn)
+[<img src="https://chiff.app/assets/images/app-store.svg" />](https://apps.apple.com/app/id1361749715) [<img src="https://chiff.app/assets/images/play-store.svg" height="40" />](https://play.google.com/store/apps/details?id=io.keyn.keyn)
 
 Follow the onboarding instructions in the app. When the app asks you to pair with your browser, you can pair with this CLI instead (see [Pairing](#pairing)).
 
@@ -63,15 +62,11 @@ Follow the onboarding instructions in the app. When the app asks you to pair wit
 
 ### Pairing
 
-The first thing you should do is pair with your phone with `chiff pair`. This generates a QR-code that you can scan with
-the Chiff app. After pairing, you can see your accounts with `chiff status`.
-You can pair with one app at the same time, so if you want to pair with another phone, run `chiff unpair` to delete the
-session.
+The first thing you should do is pair with your phone with `chiff pair`. This generates a QR-code that you can scan with the Chiff app. After pairing, you can see your accounts with `chiff status`. You can pair with one app at the same time, so if you want to pair with another phone, run `chiff unpair` to delete the session.
 
 ### Generating an SSH key
 
-You can generate an SSH key on your phone with `chiff ssh-keygen -n <name>`. This sends a request to your phone to generate the key.
-Chiff can generate two types of keys:
+You can generate an SSH key on your phone with `chiff ssh-keygen -n <name>`. This sends a request to your phone to generate the key. Chiff can generate two types of keys:
 
 1. **Ed25519**: This is the default algorithm. The key is backed up on your chiff seed and can be restored. _The key is not generated in the Secure Enclave_.
 2. **ECDSA256**: This key can be generated with the `-e` flag and is generated in the Secure Enclave (iOS only). This is more secure, _but the key won't be restored with your backup_.
@@ -94,8 +89,7 @@ The Chiff CLI allows you to get passwords and notes from your accounts with `chi
                      undefined })
 ```
 
-By default, it just return the password without any extra output, so it can be easily used in scripts.
-The account id is required and can be found by checking the overview with `chiff status`.
+By default, it just return the password without any extra output, so it can be easily used in scripts. The account id is required and can be found by checking the overview with `chiff status`.
 
 ### Adding accounts
 
